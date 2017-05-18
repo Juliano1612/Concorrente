@@ -70,4 +70,4 @@ while [[ "$THREADS" -ge "2" ]]; do #executa até num threads ser 2
 done
 echo -e "\x1B[0m\n"
 
-gnuplot -c plot.gp $PROG $YTIC "$NPROC" $SIZE
+ gnuplot -c plot.gp $PROG $YTIC "$NPROC" $SIZE

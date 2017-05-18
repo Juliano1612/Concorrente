@@ -116,31 +116,6 @@ void init_array(int ni, int nj, int nk, int nl, int nm,
 	}
 }
 
-static
-void minit_array(int ni, int nj, int nk, int nl, int nm,
-		DATA_TYPE POLYBENCH_2D(dA,NI,NK,ni,nk),
-		DATA_TYPE POLYBENCH_2D(dB,NK,NJ,nk,nj),
-		DATA_TYPE POLYBENCH_2D(dC,NJ,NM,nj,nm),
-		DATA_TYPE POLYBENCH_2D(dD,NM,NL,nm,nl))
-{
-  int i, j;
-
-  for (i = 0; i < ni; i++)
-    for (j = 0; j < nk; j++)
-      dA[i][j] = ((DATA_TYPE) i*j) / ni;
-  for (i = 0; i < nk; i++)
-    for (j = 0; j < nj; j++)
-      dB[i][j] = ((DATA_TYPE) i*(j+1)) / nj;
-  for (i = 0; i < nj; i++)
-    for (j = 0; j < nm; j++)
-      dC[i][j] = ((DATA_TYPE) i*(j+3)) / nl;
-  for (i = 0; i < nm; i++)
-    for (j = 0; j < nl; j++)
-      dD[i][j] = ((DATA_TYPE) i*(j+2)) / nk;
-}
-
-
-
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
 static
@@ -173,7 +148,6 @@ void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
 {
   int i, j, k;
 
-#pragma scop
   /* E := A*B */
   for (i = 0; i < _PB_NI; i++){
     for (j = 0; j < _PB_NJ; j++){
@@ -201,7 +175,6 @@ void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
 			}
     }
 	}
-#pragma endscop
 
 }
 
@@ -216,37 +189,39 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
 		DATA_TYPE POLYBENCH_2D(D,NM,NL,nm,nl),
 		DATA_TYPE POLYBENCH_2D(G,NI,NL,ni,nl))
 {
-  int i, j, k;
 
 //#pragma scop
+//omp_set_dynamic(0);
+//omp_set_num_threads(numThreads);
 #pragma omp parallel num_threads(numThreads)
 {
+	printf("\n%d", omp_get_num_threads());
   /* E := A*B */
 	#pragma omp for simd
-  for (i = 0; i < _PB_NI; i++){
-    for (j = 0; j < _PB_NJ; j++){
+  for (int i = 0; i < _PB_NI; i++){
+    for (int j = 0; j < _PB_NJ; j++){
 			E[i][j] = 0;
-			for (k = 0; k < _PB_NK; ++k){
+			for (int k = 0; k < _PB_NK; ++k){
 			  E[i][j] += A[i][k] * B[k][j];
 			}
     }
 	}
   /* F := C*D */
 	#pragma omp for simd
-  for (i = 0; i < _PB_NJ; i++){
-    for (j = 0; j < _PB_NL; j++){
+  for (int i = 0; i < _PB_NJ; i++){
+    for (int j = 0; j < _PB_NL; j++){
 			F[i][j] = 0;
-			for (k = 0; k < _PB_NM; ++k){
+			for (int k = 0; k < _PB_NM; ++k){
 			  F[i][j] += C[i][k] * D[k][j];
 			}
 		}
 	}
   /* G := E*F */
 	#pragma omp for simd
-  for (i = 0; i < _PB_NI; i++){
-    for (j = 0; j < _PB_NL; j++){
+  for (int i = 0; i < _PB_NI; i++){
+    for (int j = 0; j < _PB_NL; j++){
 			G[i][j] = 0;
-			for (k = 0; k < _PB_NJ; ++k){
+			for (int k = 0; k < _PB_NJ; ++k){
 			  G[i][j] += E[i][k] * F[k][j];
 			}
     }
@@ -294,6 +269,7 @@ void *kernel_3mm_PThreads(void *id)
 			}
     }
 	}
+	return NULL;
 
 }
 
