@@ -180,7 +180,7 @@ void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
 
 /* OpenMP Function */
 static
-void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
+void kernel_3mm_OpenMP2(int ni, int nj, int nk, int nl, int nm,
 		DATA_TYPE POLYBENCH_2D(E,NI,NJ,ni,nj),
 		DATA_TYPE POLYBENCH_2D(A,NI,NK,ni,nk),
 		DATA_TYPE POLYBENCH_2D(B,NK,NJ,nk,nj),
@@ -190,14 +190,11 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
 		DATA_TYPE POLYBENCH_2D(G,NI,NL,ni,nl))
 {
 
-//#pragma scop
-//omp_set_dynamic(0);
-//omp_set_num_threads(numThreads);
 #pragma omp parallel num_threads(numThreads)
 {
 	//printf("\nThreads OMP %d Var numThreads %d", omp_get_num_threads(), numThreads);
   /* E := A*B */
-	#pragma omp for simd
+  #pragma omp for simd
   for (int i = 0; i < _PB_NI; i++){
     for (int j = 0; j < _PB_NJ; j++){
 			E[i][j] = 0;
@@ -207,7 +204,7 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
     }
 	}
   /* F := C*D */
-	#pragma omp for simd
+  #pragma omp for simd
   for (int i = 0; i < _PB_NJ; i++){
     for (int j = 0; j < _PB_NL; j++){
 			F[i][j] = 0;
@@ -217,7 +214,7 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
 		}
 	}
   /* G := E*F */
-	#pragma omp for simd
+  #pragma omp for simd
   for (int i = 0; i < _PB_NI; i++){
     for (int j = 0; j < _PB_NL; j++){
 			G[i][j] = 0;
@@ -227,14 +224,13 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
     }
 	}
 }
-//#pragma endscop
-
 }
+
 
 static
 void *kernel_3mm_PThreads(void *id)
 {
-	int begin = (*(int *) id) * tamParte;
+  int begin = (*(int *) id) * tamParte;
   int end = begin+tamParte;
   int i, j, k;
 
@@ -278,12 +274,7 @@ void *kernel_3mm_PThreads(void *id)
 int main(int argc, char** argv)
 {
   /* Retrieve problem size. */
-  /*int ni = NI;
-  int nj = NJ;
-  int nk = NK;
-  int nl = NL;
-  int nm = NM;
-*/
+
 	int op = atoi(argv[2]); // 0 Sequencial, 1 OpenMP, 2 PThreads
 	numThreads = atoi(argv[1]);
 	//printf("\nnumThreads = %d", numThreads);
@@ -298,16 +289,6 @@ int main(int argc, char** argv)
   POLYBENCH_2D_ARRAY_DECL(D, DATA_TYPE, NM, NL, nm, nl);
   POLYBENCH_2D_ARRAY_DECL(G, DATA_TYPE, NI, NL, ni, nl);
 
-	//printf("\n%d", sizeof(dD[0]));
-
-	/*POLYBENCH_2D_ARRAY_DECL(dE, DATA_TYPE, NI, NJ, ni, nj);
-	POLYBENCH_2D_ARRAY_DECL(dA, DATA_TYPE, NI, NK, ni, nk);
-	POLYBENCH_2D_ARRAY_DECL(dB, DATA_TYPE, NK, NJ, nk, nj);
-	POLYBENCH_2D_ARRAY_DECL(dF, DATA_TYPE, NJ, NL, nj, nl);
-	POLYBENCH_2D_ARRAY_DECL(dC, DATA_TYPE, NJ, NM, nj, nm);
-	POLYBENCH_2D_ARRAY_DECL(dD, DATA_TYPE, NM, NL, nm, nl);
-	POLYBENCH_2D_ARRAY_DECL(dG, DATA_TYPE, NI, NL, ni, nl);
-*/
   /* Initialize array(s). */
   init_array (ni, nj, nk, nl, nm,
 	      POLYBENCH_ARRAY(A),
@@ -318,12 +299,6 @@ int main(int argc, char** argv)
 				POLYBENCH_ARRAY(F),
 				POLYBENCH_ARRAY(G));
 
-	/*minit_array (ni, nj, nk, nl, nm,
-				POLYBENCH_ARRAY(dA),
-				POLYBENCH_ARRAY(dB),
-				POLYBENCH_ARRAY(dC),
-				POLYBENCH_ARRAY(dD));
-*/
   /* Start timer. */
   //polybench_start_instruments;
   /* Run kernel. */
