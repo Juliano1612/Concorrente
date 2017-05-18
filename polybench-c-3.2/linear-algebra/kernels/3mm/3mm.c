@@ -195,7 +195,7 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
 //omp_set_num_threads(numThreads);
 #pragma omp parallel num_threads(numThreads)
 {
-	printf("\n%d", omp_get_num_threads());
+	//printf("\nThreads OMP %d Var numThreads %d", omp_get_num_threads(), numThreads);
   /* E := A*B */
 	#pragma omp for simd
   for (int i = 0; i < _PB_NI; i++){
@@ -285,7 +285,8 @@ int main(int argc, char** argv)
   int nm = NM;
 */
 	int op = atoi(argv[2]); // 0 Sequencial, 1 OpenMP, 2 PThreads
-	int numThreads = atoi(argv[1]);
+	numThreads = atoi(argv[1]);
+	//printf("\nnumThreads = %d", numThreads);
 	tamParte = tamParte/numThreads;
 
   /* Variable declaration/allocation. */
