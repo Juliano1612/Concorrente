@@ -1,0 +1,30 @@
+#! /bin/bash
+
+printf "Sequencial\n"
+for((a = 0; a < 12; a++))
+do
+	TSEQUENCIAL=$(./s.out 32768 4 2)
+	SUMBC=$(bc <<< "$SUMBC + $TSEQUENCIAL")
+done
+
+printf "OpenMP 2 Threads\n"
+for((a = 0; a < 12; a++))
+do
+	./s.out 32768 2 0
+done
+printf "OpenMP - 4 Threads\n"
+for((a = 0; a < 12; a++))
+do
+	./s.out 32768 4 0
+done
+
+printf "Pthreads - 2 Threads\n"
+for((a = 0; a < 12; a++))
+do
+	./s.out 32768 2 1
+done
+	printf "PThreads 4 Threads\n"
+for((a = 0; a < 12; a++))
+do
+	./s.out 32768 4 1
+done
