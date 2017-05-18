@@ -7,7 +7,7 @@ YTIC=$3 #gnuplot - intervalo de y
 NOTSEQ=1 #flag para executar sequencial apenas 1x (1 thread)
 #NPROC=$(grep -m 1 name /proc/cpuinfo | sed 's/^.*: //' | sed 's/@/\\\\\\@/') #pega nome do processador
 
-rm -rf results/$PROG.*#reseta resultados salvos do arquivo txt .dat
+rm -rf results/$PROG.* #reseta resultados salvos do arquivo txt .dat
 
 while [[ "$THREADS" -ge "2" ]]; do #executa até num threads ser 2
 	for i in $(seq 0 2);	do #escolha de tipo de execucao - S P O
