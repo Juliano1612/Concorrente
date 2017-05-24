@@ -9,7 +9,7 @@
 # define _3MM_H
 
 /* Default to STANDARD_DATASET. */
-# if !defined(MINI_DATASET) && !defined(SMALL_DATASET) && !defined(LARGE_DATASET) && !defined(EXTRALARGE_DATASET)
+# if !defined(PERFECT_DATASET) && !defined(MINI_DATASET) && !defined(SMALL_DATASET) && !defined(LARGE_DATASET) && !defined(EXTRALARGE_DATASET)
 #  define STANDARD_DATASET
 # endif
 
@@ -32,6 +32,14 @@
 #   define NM 256
 #  endif
 
+# ifdef PERFECT_DATASET
+#  define NI 512
+#  define NJ 512
+#  define NK 512
+#  define NL 512
+#  define NM 512
+# endif
+
 #  ifdef STANDARD_DATASET /* Default if unspecified. */
 #   define NI 1024
 #   define NJ 1024
@@ -41,11 +49,11 @@
 #  endif
 
 #  ifdef LARGE_DATASET
-#   define NI 2000
-#   define NJ 2000
-#   define NK 2000
-#   define NL 2000
-#   define NM 2000
+#   define NI 2048
+#   define NJ 2048
+#   define NK 2048
+#   define NL 2048
+#   define NM 2048
 #  endif
 
 #  ifdef EXTRALARGE_DATASET

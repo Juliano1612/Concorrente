@@ -180,7 +180,7 @@ void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
 
 /* OpenMP Function */
 static
-void kernel_3mm_OpenMP2(int ni, int nj, int nk, int nl, int nm,
+void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
 		DATA_TYPE POLYBENCH_2D(E,NI,NJ,ni,nj),
 		DATA_TYPE POLYBENCH_2D(A,NI,NK,ni,nk),
 		DATA_TYPE POLYBENCH_2D(B,NK,NJ,nk,nj),
