@@ -10,7 +10,7 @@
 #include <math.h>
 #include <omp.h>
 #include <pthread.h>
-#include <papi.h>
+#include "papi.h"
 
 /* Include polybench common header. */
 #include <polybench.h>
@@ -286,7 +286,7 @@ int main(int argc, char** argv)
 	//printf("\nnumThreads = %d", numThreads);
 	tamParte = tamParte/numThreads;
 
-
+  //PAPI_num_counters();
   /* Variable declaration/allocation. */
   POLYBENCH_2D_ARRAY_DECL(E, DATA_TYPE, NI, NJ, ni, nj);
   POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, NI, NK, ni, nk);
@@ -313,14 +313,15 @@ int main(int argc, char** argv)
 	pthread_barrier_init(&barrier, NULL, numThreads);
 	int ids[numThreads];
 
-  if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
-    printf("PAPI MORREU!\n");
-    exit(1);
-  }
+	PAPI_read_counters(values, NUM_EVENTS);
 
 	TIME()
 	switch (op) {
 		case 0: //Sequencial
+		if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
+	      printf("PAPI MORREU!\n");
+	      exit(1);
+	    }
 			kernel_3mm (ni, nj, nk, nl, nm,
 						POLYBENCH_ARRAY(E),
 						POLYBENCH_ARRAY(A),
@@ -331,6 +332,10 @@ int main(int argc, char** argv)
 						POLYBENCH_ARRAY(G));
 			break;
 		case 2: // OpenMP
+			if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
+			  printf("PAPI MORREU!\n");
+			  exit(1);
+			}
 			kernel_3mm_OpenMP (ni, nj, nk, nl, nm,
 						POLYBENCH_ARRAY(E),
 						POLYBENCH_ARRAY(A),
@@ -343,6 +348,10 @@ int main(int argc, char** argv)
 		case 1: //Pthreads
 
 			//start threads
+			if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
+		      printf("PAPI MORREU!\n");
+		      exit(1);
+		    }
 			for(int i = 0; i < numThreads; i++){
 				ids[i] = i;
 				pthread_create(&threads[i], NULL, kernel_3mm_PThreads, &ids[i]);
@@ -363,16 +372,16 @@ int main(int argc, char** argv)
   }
 
 
-  if(PAPI_stop_counters(values, NUM_EVENTS) != PAPI_OK){
+  /*if(PAPI_stop_counters(values, NUM_EVENTS) != PAPI_OK){
     printf("PAPI MORREU NO STOP!\n");
     exit(1);
-  }
-
+}*/
+  printf("\n\n");
   printf("Total L1 Cache Miss: \t%lld\n", values[0]);
   printf("Total L2 Cache Miss: \t%lld\n", values[1]);
   printf("Total L3 Cache Miss: \t%lld\n", values[2]);
   printf("Total FP Instructions: \t%lld\n", values[3]);
-  printf("Total Cycles: \t%lld\n", values[4]);
+  printf("Total Cycles: \t\t%lld\n", values[4]);
   printf("Total Instructions: \t%lld\n", values[5]);
 
   /* Stop and print timer. */
