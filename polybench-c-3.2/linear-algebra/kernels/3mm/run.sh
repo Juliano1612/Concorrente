@@ -18,7 +18,7 @@ do
      ./${PROGRAM}.out 32 0 > /dev/null
    else
     # ./${PROGRAM}.out $MSIZE 2 >> testfile.data
-     ./${PROGRAM}.out 32 0 >> ./data/${PROGRAM}_sequencial.data 2>&1
+     ./${PROGRAM}.out 32 0 >> ./data/${PROGRAM}_sequencial.dat 2>&1
   fi
 done
 
@@ -46,7 +46,7 @@ done
 # PTHREAD
 for t in 2 4 8
 do
-	file="./data/${PROGRAM}_pthread_$t.data"
+	file="./data/${PROGRAM}_pthread_$t.dat"
 	if [ -f "$file" ]
 	then
 		rm $file
