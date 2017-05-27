@@ -19,13 +19,16 @@
 /* Default data type is double, default size is 4000. */
 #include "3mm.h"
 
+pthread_mutex_t lock;
+
 #define TIME() struct timespec start, finish; double elapsed;clock_gettime(CLOCK_MONOTONIC, &start);
 #define ENDTIME() clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - start.tv_sec); elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0; printf("%.f\n", elapsed * 1000000000);
 
 #define NUM_EVENTS 6
 
 int event[NUM_EVENTS] = {PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,PAPI_FP_INS,PAPI_TOT_CYC,PAPI_TOT_INS};
-long long values[NUM_EVENTS];
+long long values[NUM_EVENTS] = {0};
+long long valuesR[NUM_EVENTS];
 
 int numThreads;
 
@@ -236,6 +239,16 @@ void kernel_3mm_OpenMP(int ni, int nj, int nk, int nl, int nm,
 static
 void *kernel_3mm_PThreads(void *id)
 {
+
+  PAPI_register_thread();
+  long long valuesR[NUM_EVENTS];
+
+  if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
+	printf("PAPI MORREU!\n");
+	exit(1);
+  }
+
+
   int begin = (*(int *) id) * tamParte;
   int end = begin+tamParte;
   int i, j, k;
@@ -271,6 +284,17 @@ void *kernel_3mm_PThreads(void *id)
 			}
     }
 	}
+
+	pthread_mutex_lock(&lock);
+	if(PAPI_read_counters(valuesR, NUM_EVENTS) != PAPI_OK){
+	    printf("PAPI MORREU NO READ!\n");
+	    exit(1);
+	}
+	for (size_t i = 0; i < NUM_EVENTS; i++) {
+		values[i] += valuesR[i];
+	}
+	pthread_mutex_unlock(&lock);
+
 	return NULL;
 
 }
@@ -280,7 +304,7 @@ void *kernel_3mm_PThreads(void *id)
 int main(int argc, char** argv)
 {
   /* Retrieve problem size. */
-
+	pthread_mutex_init(&lock, NULL);
 	int op = atoi(argv[2]); // 0 Sequencial, 1 OpenMP, 2 PThreads
 	numThreads = atoi(argv[1]);
 	//printf("\nnumThreads = %d", numThreads);
@@ -310,6 +334,8 @@ int main(int argc, char** argv)
   //polybench_start_instruments;
   /* Run kernel. */
 	pthread_t threads[numThreads];
+	pthread_attr_t pthreadAttr;
+
 	pthread_barrier_init(&barrier, NULL, numThreads);
 	int ids[numThreads];
 
@@ -330,6 +356,10 @@ int main(int argc, char** argv)
 						POLYBENCH_ARRAY(C),
 						POLYBENCH_ARRAY(D),
 						POLYBENCH_ARRAY(G));
+			if(PAPI_read_counters(values, NUM_EVENTS) != PAPI_OK){
+			    printf("PAPI MORREU NO READ!\n");
+			    exit(1);
+			}
 			break;
 		case 2: // OpenMP
 			if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
@@ -344,18 +374,26 @@ int main(int argc, char** argv)
 						POLYBENCH_ARRAY(C),
 						POLYBENCH_ARRAY(D),
 						POLYBENCH_ARRAY(G));
+			if(PAPI_read_counters(values, NUM_EVENTS) != PAPI_OK){
+			    printf("PAPI MORREU NO READ!\n");
+			    exit(1);
+			}
 			break;
 		case 1: //Pthreads
 
 			//start threads
-			if(PAPI_start_counters(event, NUM_EVENTS) != PAPI_OK){
-		      printf("PAPI MORREU!\n");
-		      exit(1);
-		    }
+			PAPI_library_init(PAPI_VER_CURRENT);
+			PAPI_thread_init(pthread_self);
+
+			pthread_attr_init(&pthreadAttr);
+			pthread_attr_setscope(&pthreadAttr, PTHREAD_SCOPE_SYSTEM);
+
+
 			for(int i = 0; i < numThreads; i++){
 				ids[i] = i;
-				pthread_create(&threads[i], NULL, kernel_3mm_PThreads, &ids[i]);
+				pthread_create(&threads[i], &pthreadAttr, kernel_3mm_PThreads, &ids[i]);
 			}
+			pthread_attr_destroy(&pthreadAttr);
 			//join threads
 			for (int j = 0; j < numThreads; j++) {
 				pthread_join(threads[j], NULL);
@@ -366,10 +404,10 @@ int main(int argc, char** argv)
 	}
 	ENDTIME()
 
-  if(PAPI_read_counters(values, NUM_EVENTS) != PAPI_OK){
+/*  if(PAPI_read_counters(values, NUM_EVENTS) != PAPI_OK){
     printf("PAPI MORREU NO READ!\n");
     exit(1);
-  }
+}*/
 
 
   /*if(PAPI_stop_counters(values, NUM_EVENTS) != PAPI_OK){
