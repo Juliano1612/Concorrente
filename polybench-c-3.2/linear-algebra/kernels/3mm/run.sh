@@ -24,27 +24,27 @@ echo "JULIANOOOOOOO"
 
 
 # OMP
-for t in 2 4 8 16
-do
-  file="./data/${PROGRAM}_openmp_$t.dat"
-  if [ -f "$file" ]
-  then
-  	rm $file
-  fi
-  for i in {1..11}
-  do
-		 echo "OMP FOR $t THREADS - EXECUTION $i"
-		 if [[ $i == 1 ]]; then
-	       ./${PROGRAM}.out $t 2 > /dev/null
-	     else
-	      # ./${PROGRAM}.out $MSIZE 2 >> testfile.data
-	       ./${PROGRAM}.out $t 2 >> ./data/${PROGRAM}_openmp_$t.dat 2>&1
-	    fi
-  done
-done
+#for t in 2 4 8 16
+#do
+#  file="./data/${PROGRAM}_openmp_$t.dat"
+#  if [ -f "$file" ]
+#  then
+#  	rm $file
+#  fi
+#  for i in {1..11}
+#  do
+#		 echo "OMP FOR $t THREADS - EXECUTION $i"
+#		 if [[ $i == 1 ]]; then
+#	       ./${PROGRAM}.out $t 2 > /dev/null
+#	     else
+#	      # ./${PROGRAM}.out $MSIZE 2 >> testfile.data
+#	       ./${PROGRAM}.out $t 2 >> ./data/${PROGRAM}_openmp_$t.dat 2>&1
+#	    fi
+#  done
+#done
 
 # PTHREAD
-for t in 2 4 8 16
+for t in 16
 do
 	file="./data/${PROGRAM}_pthread_$t.dat"
 	if [ -f "$file" ]

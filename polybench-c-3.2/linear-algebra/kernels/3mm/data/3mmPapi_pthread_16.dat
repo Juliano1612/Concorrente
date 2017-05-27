@@ -1,90 +1,27 @@
-201131982662
+192553106939
 
 
-Total L1 Cache Miss: 	4859
-Total L2 Cache Miss: 	2144
-Total L3 Cache Miss: 	1164
-Total FP Instructions: 	95
-Total Cycles: 		162852
-Total Instructions: 	39911
-205764651132
+Total L1 Cache Miss: 	27195830836
+Total L2 Cache Miss: 	26007123765
+Total L3 Cache Miss: 	24682154035
+Total FP Instructions: 	129417308177
+Total Cycles: 		2574144675409
+Total Instructions: 	1288754728490
+196374849228
 
 
-Total L1 Cache Miss: 	5443
-Total L2 Cache Miss: 	1983
-Total L3 Cache Miss: 	1273
-Total FP Instructions: 	96
-Total Cycles: 		213449
-Total Instructions: 	39911
-196512349926
+Total L1 Cache Miss: 	27155406912
+Total L2 Cache Miss: 	26018256171
+Total L3 Cache Miss: 	24694034274
+Total FP Instructions: 	129474708609
+Total Cycles: 		2581007614294
+Total Instructions: 	1288754742756
+196659263819
 
 
-Total L1 Cache Miss: 	5529
-Total L2 Cache Miss: 	3075
-Total L3 Cache Miss: 	1397
-Total FP Instructions: 	113
-Total Cycles: 		224788
-Total Instructions: 	39947
-201994470045
-
-
-Total L1 Cache Miss: 	5262
-Total L2 Cache Miss: 	2311
-Total L3 Cache Miss: 	1411
-Total FP Instructions: 	112
-Total Cycles: 		222047
-Total Instructions: 	39916
-200046146755
-
-
-Total L1 Cache Miss: 	5500
-Total L2 Cache Miss: 	2759
-Total L3 Cache Miss: 	1323
-Total FP Instructions: 	99
-Total Cycles: 		221068
-Total Instructions: 	39916
-195368113279
-
-
-Total L1 Cache Miss: 	5493
-Total L2 Cache Miss: 	2231
-Total L3 Cache Miss: 	1370
-Total FP Instructions: 	102
-Total Cycles: 		226561
-Total Instructions: 	39936
-207243259593
-
-
-Total L1 Cache Miss: 	4777
-Total L2 Cache Miss: 	2052
-Total L3 Cache Miss: 	1059
-Total FP Instructions: 	107
-Total Cycles: 		164594
-Total Instructions: 	39922
-199723010928
-
-
-Total L1 Cache Miss: 	4972
-Total L2 Cache Miss: 	2175
-Total L3 Cache Miss: 	1076
-Total FP Instructions: 	100
-Total Cycles: 		194646
-Total Instructions: 	39897
-197417728632
-
-
-Total L1 Cache Miss: 	5212
-Total L2 Cache Miss: 	2522
-Total L3 Cache Miss: 	1322
-Total FP Instructions: 	106
-Total Cycles: 		217524
-Total Instructions: 	39947
-198424294015
-
-
-Total L1 Cache Miss: 	5056
-Total L2 Cache Miss: 	2244
-Total L3 Cache Miss: 	1097
-Total FP Instructions: 	110
-Total Cycles: 		198268
-Total Instructions: 	39933
+Total L1 Cache Miss: 	27182826358
+Total L2 Cache Miss: 	26004963593
+Total L3 Cache Miss: 	24655094177
+Total FP Instructions: 	129321466588
+Total Cycles: 		2595817810697
+Total Instructions: 	1288754761029
