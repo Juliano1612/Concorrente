@@ -1,6 +1,6 @@
 #! /usr/local/bin/gnuplot
 # set terminal svg enhanced font "Helvetica,20"
-set terminal png size 800,600 enhanced font "Helvetica,12"
+set terminal png size 1000,600 enhanced font "Helvetica,12"
 # set term x11 persist
 # set xlabel "Threads"
 # set ylabel "Speedup"
@@ -26,6 +26,6 @@ set xtics format ""
 set grid ytics
 set output "cache.png"
 set title "Cache Miss"
-plot "./results/3mmL1B.dat" using 2:xtic(1) title "L1" linecolor rgb red, \
+plot "./results/3mmL1B2.dat" using 2:xtic(1) title "L1" linecolor rgb red, \
             '' using 3 title "L2" linecolor rgb blue, \
             '' using 4 title "L3" linecolor rgb green,
