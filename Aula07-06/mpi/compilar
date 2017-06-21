@@ -1,0 +1,1 @@
+mpicc mmmpi.c && mpirun -n 2 -N 1 -hostfile ips ./a.out
