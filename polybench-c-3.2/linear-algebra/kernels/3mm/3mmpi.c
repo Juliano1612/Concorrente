@@ -25,8 +25,6 @@
 
 int world_size, world_rank;
 
-int numThreads;
-
 int id;
 int ni = NI;
 int nj = NJ;
@@ -36,13 +34,13 @@ int nm = NM;
 
 int tamParte = NI;
 
-double **dE;
-double **dA;
-double **dB;
-double **dF;
-double **dC;
-double **dD;
-double **dG;
+double *dE;
+double *dA;
+double *dB;
+double *dF;
+double *dC;
+double *dD;
+double *dG;
 
 pthread_barrier_t barrier;
 
@@ -61,14 +59,39 @@ void init_array(int ni, int nj, int nk, int nl, int nm,
 {
 	int i, j;
 
-	dA = (double **) malloc (sizeof(double) * NI);
-	dB = (double **) malloc (sizeof(double) * NI);
-	dC = (double **) malloc (sizeof(double) * NI);
-	dD = (double **) malloc (sizeof(double) * NI);
-	dE = (double **) malloc (sizeof(double) * NI);
-	dF = (double **) malloc (sizeof(double) * NI);
-	dG = (double **) malloc (sizeof(double) * NI);
+	dA = (double *) malloc (sizeof(double) * NI*NI);
+	dB = (double *) malloc (sizeof(double) * NI*NI);
+	dC = (double *) malloc (sizeof(double) * NI*NI);
+	dD = (double *) malloc (sizeof(double) * NI*NI);
+	dE = (double *) malloc (sizeof(double) * NI*NI);
+	dF = (double *) malloc (sizeof(double) * NI*NI);
+	dG = (double *) malloc (sizeof(double) * NI*NI);
 
+	for(i = 0; i < ni; i++){
+		for(j = 0; j < ni; j++){
+			A[i][j] = ((DATA_TYPE) i*j) / ni;
+			dA[(i*ni)+j] = A[i][j];
+			
+			B[i][j] = ((DATA_TYPE) i*(j+1)) / nj;
+			dB[(i*ni)+j] = B[i][j];
+			
+			C[i][j] = ((DATA_TYPE) i*(j+3)) / nl;
+			dC[(i*ni)+j] = C[i][j];
+			
+			D[i][j] = ((DATA_TYPE) i*(j+2)) / nk;
+			dD[(i*ni)+j] = D[i][j];
+			
+			E[i][j] = ((DATA_TYPE) 0);
+			dE[(i*ni)+j] = E[i][j];
+			
+			F[i][j] = ((DATA_TYPE) 0);
+			dF[(i*ni)+j] = F[i][j];
+			
+			G[i][j] = ((DATA_TYPE) 0);
+			dG[(i*ni)+j] = G[i][j];
+		}
+	}
+/*
 	for (i = 0; i < ni; i++){
 		dA[i] = A[i];
 		for (j = 0; j < nk; j++){
@@ -117,8 +140,12 @@ void init_array(int ni, int nj, int nk, int nl, int nm,
 			G[i][j] = ((DATA_TYPE) 0);
 			dG[i][j] = G[i][j];
 		}
-	}
+	}*/
 }
+
+
+
+
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
@@ -136,14 +163,45 @@ void print_array(int ni, int nl,
 		fprintf (stderr, "\n");
 	}
 
+/*static
+void printMatrixLine(double* m){
+	int tamLinha  = 0;
+	for(int i = 0; i < sizeof(m*sizeof(double)); i++){
+		if(tamLinha == NI){
+			printf("\n %f", m[i]);
+			tamLinha = 0;
+		}else{
+			printf(" %f", m[i]);
+		}
+		tamLinha++;
+
+	}
+}*/
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
 /* Sequential Function */
 
+static
+void kernel_3mm_MPI_Second(){
+		int begin = world_rank * tamParte;
+		int end = begin+tamParte;
+		int i, j, k;
+
+		/* G := E*F */
+		for (i = begin; i < end; i++){
+			for (j = 0; j < _PB_NL; j++){
+				dG[(i*NI)+j] = 0;
+				for (k = 0; k < _PB_NJ; ++k){
+					dG[(i*NI)+j] += dE[(i*NI)+k] * dF[(k*NI)+j];
+				}
+			}
+		}
+}
+
 
 	static
-	void kernel_3mm_MPI(){
+	void kernel_3mm_MPI_First(){
 
 		int begin = world_rank * tamParte;
 		int end = begin+tamParte;
@@ -152,31 +210,24 @@ void print_array(int ni, int nl,
   /* E := A*B */
 		for (i = begin; i < end; i++){
 			for (j = 0; j < _PB_NJ; j++){
-				dE[i][j] = 0;
+				dE[(i*NI)+j] = 0;
 				for (k = 0; k < _PB_NK; ++k){
-					dE[i][j] += dA[i][k] * dB[k][j];
+					dE[(i*NI)+j] += dA[(i*NI)+k] * dB[(k*NI)+j];
 				}
 			}
 		}
   /* F := C*D */
 		for (i = begin; i < end; i++){
 			for (j = 0; j < _PB_NL; j++){
-				dF[i][j] = 0;
+				dF[(i*NI)+j] = 0;
 				for (k = 0; k < _PB_NM; ++k){
-					dF[i][j] += dC[i][k] * dD[k][j];
+					dF[(i*NI)+j] += dC[(i*NI)+k] * dD[(k*NI)+j];
 				}
 			}
 		}
-		pthread_barrier_wait(&barrier);
-  /* G := E*F */
-		for (i = begin; i < end; i++){
-			for (j = 0; j < _PB_NL; j++){
-				dG[i][j] = 0;
-				for (k = 0; k < _PB_NJ; ++k){
-					dG[i][j] += dE[i][k] * dF[k][j];
-				}
-			}
-		}
+
+		printf("\n%d Concluiu MPI_First", world_rank);
+  
 	}
 
 
@@ -185,32 +236,26 @@ void print_array(int ni, int nl,
 	{
   /* Retrieve problem size. */
 
-	//tamParte = tamParte/numThreads;
+
 
   /* Variable declaration/allocation. */
-	POLYBENCH_2D_ARRAY_DECL(E, DATA_TYPE, NI, NJ, ni, nj);
-	POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, NI, NK, ni, nk);
-	POLYBENCH_2D_ARRAY_DECL(B, DATA_TYPE, NK, NJ, nk, nj);
-	POLYBENCH_2D_ARRAY_DECL(F, DATA_TYPE, NJ, NL, nj, nl);
-	POLYBENCH_2D_ARRAY_DECL(C, DATA_TYPE, NJ, NM, nj, nm);
-	POLYBENCH_2D_ARRAY_DECL(D, DATA_TYPE, NM, NL, nm, nl);
-	POLYBENCH_2D_ARRAY_DECL(G, DATA_TYPE, NI, NL, ni, nl);
-
+	
   /* Initialize array(s). */
-	init_array (ni, nj, nk, nl, nm,
-		POLYBENCH_ARRAY(A),
-		POLYBENCH_ARRAY(B),
-		POLYBENCH_ARRAY(C),
-		POLYBENCH_ARRAY(D),
-		POLYBENCH_ARRAY(E),
-		POLYBENCH_ARRAY(F),
-		POLYBENCH_ARRAY(G));
+	
+		
+		POLYBENCH_2D_ARRAY_DECL(E, DATA_TYPE, NI, NJ, ni, nj);
+		POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, NI, NK, ni, nk);
+		POLYBENCH_2D_ARRAY_DECL(B, DATA_TYPE, NK, NJ, nk, nj);
+		POLYBENCH_2D_ARRAY_DECL(F, DATA_TYPE, NJ, NL, nj, nl);
+		POLYBENCH_2D_ARRAY_DECL(C, DATA_TYPE, NJ, NM, nj, nm);
+		POLYBENCH_2D_ARRAY_DECL(D, DATA_TYPE, NM, NL, nm, nl);
+		POLYBENCH_2D_ARRAY_DECL(G, DATA_TYPE, NI, NL, ni, nl);
+
+
 
   /* Start timer. */
   //polybench_start_instruments;
   /* Run kernel. */
-	pthread_barrier_init(&barrier, NULL, numThreads);
-
 
 	TIME()
 	MPI_Init(NULL, NULL);
@@ -219,32 +264,62 @@ void print_array(int ni, int nl,
 			    // Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+	tamParte = tamParte/world_size;
+
+	printf("\nrank %d", world_rank);
+
 	if(world_rank == 0){
+
 		printf("\nGerente... rank %d", world_rank);
+
+
+
+		init_array (ni, nj, nk, nl, nm,
+		POLYBENCH_ARRAY(A),
+		POLYBENCH_ARRAY(B),
+		POLYBENCH_ARRAY(C),
+		POLYBENCH_ARRAY(D),
+		POLYBENCH_ARRAY(E),
+		POLYBENCH_ARRAY(F),
+		POLYBENCH_ARRAY(G));
+
+
+		for(int i = 1; i < world_size; i++){
+			MPI_Send(dA+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dB, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dC+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dD, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dE+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dF+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			//MPI_Send(dG+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+		}
+
 	}else{
+
 		printf("\nEscravo... rank %d", world_rank);
+
+		dA = (double *) malloc (sizeof(double) * tamParte*NI);
+		dB = (double *) malloc (sizeof(double) * NI*NI);
+		dC = (double *) malloc (sizeof(double) * tamParte*NI);
+		dD = (double *) malloc (sizeof(double) * NI*NI);
+		dE = (double *) malloc (sizeof(double) * tamParte*NI);
+		dF = (double *) malloc (sizeof(double) * tamParte*NI);
+		//dG = (double *) malloc (sizeof(double) * tamParte*NI);
+
+
+		MPI_Recv(dA+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dB, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dC+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dD, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dE+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dF+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 
+	kernel_3mm_MPI_First();
 			    // Finalize the MPI environment.
 	MPI_Finalize();
 
 	ENDTIME()
-  /* Stop and print timer. */
-  //polybench_stop_instruments;
-  //polybench_print_instruments();
-
-  /* Prevent dead-code elimination. All live-out data must be printed
-     by the function call in argument. */
-	polybench_prevent_dce(print_array(ni, nl,  POLYBENCH_ARRAY(G)));
-
-  /* Be clean. */
-	POLYBENCH_FREE_ARRAY(E);
-	POLYBENCH_FREE_ARRAY(A);
-	POLYBENCH_FREE_ARRAY(B);
-	POLYBENCH_FREE_ARRAY(F);
-	POLYBENCH_FREE_ARRAY(C);
-	POLYBENCH_FREE_ARRAY(D);
-	POLYBENCH_FREE_ARRAY(G);
 
 	return 0;
 }
