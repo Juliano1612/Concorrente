@@ -144,6 +144,8 @@ void kernel_3mm_MPI_Second(){
 				}
 			}
 		}
+		printf("%d Concluiu MPI_First BEGIN %d END %d\n", world_rank, begin, end);
+		printMatrixLine(dG);
 }
 
 
@@ -174,7 +176,6 @@ void kernel_3mm_MPI_Second(){
 		}
 
 		printf("%d Concluiu MPI_First BEGIN %d END %d\n", world_rank, begin, end);
-		printMatrixLine(dE);
   
 	}
 
@@ -263,6 +264,17 @@ void kernel_3mm_MPI_Second(){
 	}
 
 		kernel_3mm_MPI_Second();
+
+	if(world_rank == 0){
+
+		for(int i = 1; i < world_size; i++){
+			MPI_Recv(dG+(i*tamParte), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		}
+
+	printMatrixLine(dG);
+	}else{
+		MPI_Send(dG+(world_rank*tamParte), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+	}
 
 			    // Finalize the MPI environment.
 	MPI_Finalize();
