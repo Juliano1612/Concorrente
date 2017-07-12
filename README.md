@@ -2,11 +2,15 @@
 
 Para compilar
 
-$ gcc linear-algebra/kernels/3mm/3mm.c utilities/polybench.c -o obj/3mm -std=gnu99 -Wall -pthread -fopenmp -Iutilities -Ilinear-algebra/kernels/3mm -DSMALL_DATASET -O0 -lm
+$ gcc linear-algebra/kernels/3mm/3mm.c utilities/polybench.c -o obj/3mm -std=gnu99 -Wall -pthread -fopenmp -Iutilities -Ilinear-algebra/kernels/3mm -DSMALL_DATASET -O3 -lm
 
 Para compilar com Papi
 
-$ gcc linear-algebra/kernels/3mm/3mmPapi.c utilities/polybench.c /usr/local/lib/libpapi.a -o obj/3mm -std=gnu99 -Wall -pthread -fopenmp -Iutilities -Ilinear-algebra/kernels/3mm -Iusr/local/include/ -DSMALL_DATASET -O0 -lm
+$ gcc linear-algebra/kernels/3mm/3mmPapi.c utilities/polybench.c /usr/local/lib/libpapi.a -o obj/3mm -std=gnu99 -Wall -pthread -fopenmp -Iutilities -Ilinear-algebra/kernels/3mm -Iusr/local/include/ -DSMALL_DATASET -O3 -lm
+
+Para compilar com MPI
+
+$ mpicc linear-algebra/kernels/3mm/3mmpi.c utilities/polybench.c -o obj/3mmpi -std=gnu99 -Wall -Iutilities -Ilinear-algebra/kernels/3mmpi -DSMALL_DATASET -O3 -lm && mpirun -n 2 ./obj/3mmpi
 
 Para executar diretamente
 
