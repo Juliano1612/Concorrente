@@ -84,7 +84,6 @@ void init_array(int ni, int nj, int nk, int nl, int nm)
 			dG[(i*ni)+j] = ((DATA_TYPE) 0);
 		}
 	}
-	printf("%d Rank criou\n", world_rank);
 }
 
 
@@ -111,18 +110,21 @@ static
 void printMatrixLine(double* m){
 	int tamLinha  = 0;
 	int contaLinha = 0;
-	printf("\nWR%d Linha[%d]", world_rank, contaLinha);
+	//printf("\nWR%d Linha[%d]", world_rank, contaLinha);
 	for(int i = 0; i < NI*NI; i++){
 		if(tamLinha == NI){
 			contaLinha++;
 			tamLinha = 0;
-			printf("\nWR%d Linha[%d] %.2f", world_rank, contaLinha, m[i]);
+			//printf("\nWR%d Linha[%d] %.2f", world_rank, contaLinha, m[i]);
+			printf("\n%.2f", m[i]);
+
 		}else{
 			printf(" %f", m[i]);
 		}
 		tamLinha++;
 
 	}
+	printf("\n");
 }
 
 /* Main computational kernel. The whole function will be timed,
@@ -144,8 +146,8 @@ void kernel_3mm_MPI_Second(){
 				}
 			}
 		}
-		printf("%d Concluiu MPI_First BEGIN %d END %d\n", world_rank, begin, end);
-		printMatrixLine(dG);
+		//printf("%d Concluiu MPI_Second BEGIN %d END %d\n", world_rank, begin, end);
+		//printMatrixLine(dG);
 }
 
 
@@ -158,24 +160,24 @@ void kernel_3mm_MPI_Second(){
 
   /* E := A*B */
 		for (i = begin; i < end; i++){
-			for (j = 0; j < _PB_NJ; j++){
+			for (j = 0; j < NI; j++){
 				dE[(i*NI)+j] = 0;
-				for (k = 0; k < _PB_NK; ++k){
+				for (k = 0; k < NI; ++k){
 					dE[(i*NI)+j] += dA[(i*NI)+k] * dB[(k*NI)+j];
 				}
 			}
 		}
   /* F := C*D */
 		for (i = begin; i < end; i++){
-			for (j = 0; j < _PB_NL; j++){
+			for (j = 0; j < NI; j++){
 				dF[(i*NI)+j] = 0;
-				for (k = 0; k < _PB_NM; ++k){
+				for (k = 0; k < NI; ++k){
 					dF[(i*NI)+j] += dC[(i*NI)+k] * dD[(k*NI)+j];
 				}
 			}
 		}
 
-		printf("%d Concluiu MPI_First BEGIN %d END %d\n", world_rank, begin, end);
+		//printf("%d Concluiu MPI_First BEGIN %d END %d\n", world_rank, begin, end);
   
 	}
 
@@ -194,7 +196,8 @@ void kernel_3mm_MPI_Second(){
 			    // Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-	tamParte = tamParte/world_size;
+	tamParte = ceil(NI/world_size);
+	//printf("tamParte %d\n", tamParte);
 
 
 	if(world_rank == 0){
@@ -203,9 +206,9 @@ void kernel_3mm_MPI_Second(){
 
 
 		for(int i = 1; i < world_size; i++){
-			MPI_Send(dA+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dA+((i*tamParte)*NI), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			MPI_Send(dB, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-			MPI_Send(dC+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dC+((i*tamParte)*NI), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			MPI_Send(dD, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			//MPI_Send(dE+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			//MPI_Send(dF+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
@@ -230,35 +233,48 @@ void kernel_3mm_MPI_Second(){
 		dF = (double *) malloc (sizeof(double) * NI*NI);
 		dG = (double *) malloc (sizeof(double) * NI*NI);
 
-		MPI_Recv(dA+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		for(int i = 0; i < ni; i++){
+			for(int j = 0; j < ni; j++){
+				dA[(i*ni)+j] = ((DATA_TYPE) 0);
+				dB[(i*ni)+j] = ((DATA_TYPE) 0);
+				dC[(i*ni)+j] = ((DATA_TYPE) 0);
+				dD[(i*ni)+j] = ((DATA_TYPE) 0);
+				dE[(i*ni)+j] = ((DATA_TYPE) 0);
+				dF[(i*ni)+j] = ((DATA_TYPE) 0);
+				dG[(i*ni)+j] = ((DATA_TYPE) 0);
+			}
+		}
+
+		MPI_Recv(dA+((world_rank*tamParte)*NI), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(dB, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Recv(dC+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dC+((world_rank*tamParte)*NI), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(dD, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		//MPI_Recv(dE+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		//MPI_Recv(dF+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 			kernel_3mm_MPI_First();
 
+
 	if(world_rank == 0){
 
 		for(int i = 1; i < world_size; i++){
-			MPI_Recv(dE+(i*tamParte), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			MPI_Recv(dF+(i*tamParte), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(dE+(i*tamParte*NI), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(dF+(i*tamParte*NI), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
 
 
 		for(int i = 1; i < world_size; i++){
-			MPI_Send(dE+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(dE+(i*tamParte*NI), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			MPI_Send(dF, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 		}
 
 
 	}else{
 
-		MPI_Send(dE+(world_rank*tamParte), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-		MPI_Send(dF+(world_rank*tamParte), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send(dE+((world_rank*NI)*tamParte), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send(dF+((world_rank*NI)*tamParte), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
 
-		MPI_Recv(dE+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(dE+((world_rank*NI)*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(dF, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 	}
@@ -268,12 +284,12 @@ void kernel_3mm_MPI_Second(){
 	if(world_rank == 0){
 
 		for(int i = 1; i < world_size; i++){
-			MPI_Recv(dG+(i*tamParte), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Recv(dG+(i*tamParte*NI), tamParte*NI, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
 
 	printMatrixLine(dG);
 	}else{
-		MPI_Send(dG+(world_rank*tamParte), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+		MPI_Send(dG+(world_rank*tamParte*NI), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
 	}
 
 			    // Finalize the MPI environment.
