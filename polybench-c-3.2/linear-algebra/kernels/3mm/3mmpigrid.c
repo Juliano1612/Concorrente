@@ -9,6 +9,7 @@
 #include <string.h>
 #include <math.h>
 #include <mpi.h>
+#include <time.h>
 
 /* Include polybench common header. */
 #include <polybench.h>
@@ -21,7 +22,6 @@
 #define ENDTIME() clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - start.tv_sec); elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0; printf("%.f\n", elapsed * 1000000000);
 
 
-int world_size, world_rank;
 
 int id;
 int ni = NI;
@@ -40,7 +40,31 @@ double *dC;
 double *dD;
 double *dG;
 
-pthread_barrier_t barrier;
+//vetores com os ranks que criarão comunicadores
+int rank0[2] = {0,1};
+int rank1[2] = {1,2};
+int rank2[2] = {3,4};
+int rank3[2] = {4,5};
+int rank4[2] = {6,7};
+int rank5[2] = {7,8};
+
+int rank6[2] = {0,3};
+int rank7[2] = {1,4};
+int rank8[2] = {2,5};
+int rank9[2] = {3,6};
+int rank10[2] = {4,7};
+int rank11[2] = {5,8};
+
+int rank12[2] = {0,9};
+int rank13[2] = {2,10};
+int rank14[2] = {8,11};
+int rank15[2] = {9,12};
+
+MPI_Comm comm_world, comm0, comm1, comm2, comm3, comm4, comm5, comm6, comm7, comm8, comm9, comm10, comm11, comm12, comm13, comm14, comm15;
+MPI_Group group_orig, group0, group1, group2, group3, group4, group5, group6, group7, group8, group9, group10, group11, group12, group13, group14, group15;
+
+int world_size, world_rank;
+int worldsizes[4], worldranks[4];
 
 
 /* Array initialization. */
@@ -62,22 +86,22 @@ void init_array(int ni, int nj, int nk, int nl, int nm)
 		for(j = 0; j < ni; j++){
 			//A[i][j] = ((DATA_TYPE) i*j) / ni;
 			dA[(i*ni)+j] = ((DATA_TYPE) i*j) / ni;
-			
+
 			//B[i][j] = ((DATA_TYPE) i*(j+1)) / nj;
 			dB[(i*ni)+j] = ((DATA_TYPE) i*(j+1)) / nj;
-			
+
 			//C[i][j] = ((DATA_TYPE) i*(j+3)) / nl;
 			dC[(i*ni)+j] = ((DATA_TYPE) i*(j+3)) / nl;
-			
+
 			//D[i][j] = ((DATA_TYPE) i*(j+2)) / nk;
 			dD[(i*ni)+j] = ((DATA_TYPE) i*(j+2)) / nk;
-			
+
 			//E[i][j] = ((DATA_TYPE) 0);
 			dE[(i*ni)+j] = ((DATA_TYPE) 0);
-			
+
 			//F[i][j] = ((DATA_TYPE) 0);
 			dF[(i*ni)+j] = ((DATA_TYPE) 0);
-			
+
 			//G[i][j] = ((DATA_TYPE) 0);
 			dG[(i*ni)+j] = ((DATA_TYPE) 0);
 		}
@@ -176,20 +200,227 @@ void kernel_3mm_MPI_Second(){
 		}
 
 		//printf("%d Concluiu MPI_First BEGIN %d END %d\n", world_rank, begin, end);
-  
+
 	}
 
+
+	void createGroupsAndComms(){
+		MPI_Comm_group(MPI_COMM_WORLD, &group_orig);//cria o grupo original para gerar os outros
+
+		MPI_Group_incl(group_orig, 2, rank0, &group0);//0 1
+		MPI_Group_incl(group_orig, 2, rank1, &group1);//1 2
+		MPI_Group_incl(group_orig, 2, rank2, &group2);//3 4
+		MPI_Group_incl(group_orig, 2, rank3, &group3);//4 5
+		MPI_Group_incl(group_orig, 2, rank4, &group4);//6 7
+		MPI_Group_incl(group_orig, 2, rank5, &group5);//7 8
+
+		MPI_Group_incl(group_orig, 2, rank6, &group6);//0 3
+		MPI_Group_incl(group_orig, 2, rank7, &group7);//1 4
+		MPI_Group_incl(group_orig, 2, rank8, &group8);//2 5
+		MPI_Group_incl(group_orig, 2, rank9, &group9);//3 6
+		MPI_Group_incl(group_orig, 2, rank10, &group10);//4 7
+		MPI_Group_incl(group_orig, 2, rank11, &group11);//5 8
+
+		MPI_Group_incl(group_orig, 2, rank12, &group12);//0 09
+		MPI_Group_incl(group_orig, 2, rank13, &group13);//2 10
+		MPI_Group_incl(group_orig, 2, rank14, &group14);//8 11
+		MPI_Group_incl(group_orig, 2, rank15, &group15);//6 12
+
+		MPI_Comm_create(MPI_COMM_WORLD, group0, &comm0);//0 1
+		MPI_Comm_create(MPI_COMM_WORLD, group1, &comm1);//1 2
+		MPI_Comm_create(MPI_COMM_WORLD, group2, &comm2);//3 4
+		MPI_Comm_create(MPI_COMM_WORLD, group3, &comm3);//4 5
+		MPI_Comm_create(MPI_COMM_WORLD, group4, &comm4);//6 7
+		MPI_Comm_create(MPI_COMM_WORLD, group5, &comm5);//7 8
+
+		MPI_Comm_create(MPI_COMM_WORLD, group6, &comm6);//0 3
+		MPI_Comm_create(MPI_COMM_WORLD, group7, &comm7);//1 4
+		MPI_Comm_create(MPI_COMM_WORLD, group8, &comm8);//2 5
+		MPI_Comm_create(MPI_COMM_WORLD, group9, &comm9);//3 6
+		MPI_Comm_create(MPI_COMM_WORLD, group10, &comm10);//4 7
+		MPI_Comm_create(MPI_COMM_WORLD, group11, &comm11);//5 8
+
+		MPI_Comm_create(MPI_COMM_WORLD, group12, &comm12);//0 09
+		MPI_Comm_create(MPI_COMM_WORLD, group13, &comm13);//2 10
+		MPI_Comm_create(MPI_COMM_WORLD, group14, &comm14);//8 11
+		MPI_Comm_create(MPI_COMM_WORLD, group15, &comm15);//6 12
+
+	}
+
+	void initWorldsSizeAndRanks(){
+
+		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+		/*Vetor de rank e size -> [0]UP [1]DOWN [2]LEFT [3]RIGHT */
+		switch (world_rank) {
+			case 0:// 3 comunicadores
+				MPI_Comm_rank(comm6, &worldranks[0]);//up
+				worldranks[1] = -1;//down
+				MPI_Comm_rank(comm12, &worldranks[2]);//left -> processador
+				MPI_Comm_rank(comm0, &worldranks[3]);//right
+
+				MPI_Comm_size(comm6, &worldsizes[0]);//up
+				worldsizes[1] = -1;//down
+				MPI_Comm_size(comm12, &worldsizes[2]);//left -> processador
+				MPI_Comm_size(comm0, &worldsizes[3]);//right
+
+				break;
+			case 1:
+				MPI_Comm_rank(comm7, &worldranks[0]);//up
+				worldranks[1] = -1;//down
+				MPI_Comm_rank(comm0, &worldranks[2]);//left
+				MPI_Comm_rank(comm1, &worldranks[3]);//right
+
+				MPI_Comm_size(comm7, &worldsizes[0]);//up
+				worldsizes[1] = -1;//down
+				MPI_Comm_size(comm0, &worldsizes[2]);//left
+				MPI_Comm_size(comm1, &worldsizes[3]);//right
+				break;
+			case 2:
+				MPI_Comm_rank(comm8, &worldranks[0]);//up
+				worldranks[1] = -1;//down
+				MPI_Comm_rank(comm1, &worldranks[2]);//left
+				MPI_Comm_rank(comm13, &worldranks[3]);//right  -> processador
+
+				MPI_Comm_size(comm8, &worldsizes[0]);//up
+				worldsizes[1] = -1;//down
+				MPI_Comm_size(comm1, &worldsizes[2]);//left
+				MPI_Comm_size(comm13, &worldsizes[3]);//right -> processador
+				break;
+			case 3:
+				MPI_Comm_rank(comm9, &worldranks[0]);//up
+				MPI_Comm_rank(comm6, &worldranks[1]);//down
+				worldranks[2] = -1;//left
+				MPI_Comm_rank(comm2, &worldranks[3]);//right
+
+				MPI_Comm_size(comm9, &worldsizes[0]);//up
+				MPI_Comm_size(comm6, &worldsizes[1]);//down
+				worldsizes[2] = -1;//left
+				MPI_Comm_size(comm2, &worldsizes[3]);//right
+				break;
+			case 4:
+				MPI_Comm_rank(comm10, &worldranks[0]);//up
+				MPI_Comm_rank(comm7, &worldranks[1]);//down
+				MPI_Comm_rank(comm2, &worldranks[2]);//left
+				MPI_Comm_rank(comm3, &worldranks[3]);//right
+
+				MPI_Comm_size(comm10, &worldsizes[0]);//up
+				MPI_Comm_size(comm7, &worldsizes[0]);//down
+				MPI_Comm_size(comm2, &worldsizes[2]);//left
+				MPI_Comm_size(comm3, &worldsizes[3]);//right
+				break;
+			case 5:
+				MPI_Comm_rank(comm11, &worldranks[0]);//up
+				MPI_Comm_rank(comm8, &worldranks[1]);//down
+				MPI_Comm_rank(comm3, &worldranks[2]);//left
+				worldranks[3] = -1;//right
+
+				MPI_Comm_size(comm11, &worldsizes[0]);//up
+				MPI_Comm_size(comm8, &worldsizes[1]);//down
+				MPI_Comm_size(comm3, &worldsizes[2]);//left
+				worldsizes[3] = -1;//right
+				break;
+			case 6:
+				worldranks[0] = -1;//up
+				MPI_Comm_rank(comm9, &worldranks[1]);//down
+				MPI_Comm_rank(comm15, &worldranks[2]);//left
+				MPI_Comm_rank(comm4, &worldranks[3]);//right
+
+				worldsizes[0]= -1;//up
+				MPI_Comm_size(comm9, &worldsizes[1]);//down
+				MPI_Comm_size(comm15, &worldsizes[2]) ;//left
+				MPI_Comm_size(comm4, &worldsizes[3]);//right
+				break;
+			case 7:
+				worldranks[0] = -1;//up
+				MPI_Comm_rank(comm10, &worldranks[1]);//down
+				MPI_Comm_rank(comm4, &worldranks[2]);//left
+				MPI_Comm_rank(comm5, &worldranks[3]);//right
+
+				worldsizes[0] = -1;//up
+				MPI_Comm_size(comm10, &worldsizes[1]);//down
+				MPI_Comm_size(comm4, &worldsizes[2]);//left
+				MPI_Comm_size(comm5, &worldsizes[3]);//right
+				break;
+			case 8:
+				worldranks[0] = -1;//up
+				MPI_Comm_rank(comm11, &worldranks[1]);//down
+				MPI_Comm_rank(comm5, &worldranks[2]);//left
+				MPI_Comm_rank(comm14, &worldranks[3]);//right
+
+				worldsizes[0] = -1;//up
+				MPI_Comm_size(comm11, &worldsizes[1]);//down
+				MPI_Comm_size(comm5, &worldsizes[2]);//left
+				MPI_Comm_size(comm14, &worldsizes[3]);//right
+				break;
+			case 9:
+				worldranks[0] = -1;//up
+				worldranks[1] = -1;//down
+				worldranks[2] = -1;//left
+				MPI_Comm_rank(comm12, &worldranks[3]);//right
+
+				worldsizes[0] = -1;//up
+				worldsizes[1] = -1;//down
+				worldsizes[2] = -1;//left
+				MPI_Comm_size(comm12, &worldsizes[3]);//right
+				break;
+			case 10:
+				worldranks[0] = -1;//up
+				worldranks[1] = -1;//down
+				MPI_Comm_rank(comm13, &worldranks[2]);//left
+				worldranks[3] = -1;//right
+
+				worldsizes[0] = -1;//up
+				worldsizes[1] = -1;//down
+				MPI_Comm_size(comm13, &worldsizes[2]);//left
+				worldsizes[3] = -1;//right
+				break;
+			case 11:
+				worldranks[0] = -1;//up
+				worldranks[1] = -1;//down
+				MPI_Comm_rank(comm14, &worldranks[2]);//left
+				worldranks[3] = -1;//right
+
+				worldsizes[0] = -1;//up
+				worldsizes[1] = -1;//down
+				MPI_Comm_size(comm14, &worldsizes[2]);//left
+				worldsizes[3] = -1;//right
+				break;
+			case 12:
+				worldranks[0] = -1;//up
+				worldranks[1] = -1;//down
+				worldranks[2] = -1;//left
+				MPI_Comm_rank(comm15, &worldranks[3]);//right
+
+				worldsizes[0] = -1;//up
+				worldsizes[1] = -1;//down
+				worldsizes[2] = -1;//left
+				MPI_Comm_size(comm15, &worldsizes[3]);//right
+				break;
+		}
+
+	}
 
 
 	int main(int argc, char** argv)
 	{
 
 
-
 	TIME()
 
 	MPI_Init(NULL, NULL);
-			    // Get the number of processes
+
+
+			createGroupsAndComms();
+			initWorldsSizeAndRanks();
+
+
+
+
+
+
+/*			    // Get the number of processes
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 			    // Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -208,20 +439,9 @@ void kernel_3mm_MPI_Second(){
 			MPI_Send(dB, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			MPI_Send(dC+((i*tamParte)*NI), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 			MPI_Send(dD, NI*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-			//MPI_Send(dE+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-			//MPI_Send(dF+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-			//MPI_Send(dG+(i*tamParte), tamParte*NI,MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 		}
 
 	}else{
-
-		/*dA = (double *) malloc (sizeof(double) * tamParte*NI);
-		dB = (double *) malloc (sizeof(double) * NI*NI);
-		dC = (double *) malloc (sizeof(double) * tamParte*NI);
-		dD = (double *) malloc (sizeof(double) * NI*NI);
-		dE = (double *) malloc (sizeof(double) * tamParte*NI);
-		dF = (double *) malloc (sizeof(double) * tamParte*NI);*/
-		//dG = (double *) malloc (sizeof(double) * tamParte*NI);
 
 		dA = (double *) malloc (sizeof(double) * NI*NI);
 		dB = (double *) malloc (sizeof(double) * NI*NI);
@@ -247,8 +467,6 @@ void kernel_3mm_MPI_Second(){
 		MPI_Recv(dB, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(dC+((world_rank*tamParte)*NI), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(dD, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		//MPI_Recv(dE+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		//MPI_Recv(dF+(world_rank*tamParte), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 			kernel_3mm_MPI_First();
 
@@ -289,7 +507,7 @@ void kernel_3mm_MPI_Second(){
 	}else{
 		MPI_Send(dG+(world_rank*tamParte*NI), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
 	}
-
+*/
 			    // Finalize the MPI environment.
 	MPI_Finalize();
 
