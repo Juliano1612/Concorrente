@@ -10,12 +10,8 @@
 #include <math.h>
 #include <mpi.h>
 #include <time.h>
-
-/* Include polybench common header. */
+#include <unistd.h>
 #include <polybench.h>
-
-/* Include benchmark-specific header. */
-/* Default data type is double, default size is 4000. */
 #include "3mm.h"
 
 #define TIME() struct timespec start, finish; double elapsed;clock_gettime(CLOCK_MONOTONIC, &start);
@@ -58,17 +54,20 @@ int rank11[2] = {5,8};
 int rank12[2] = {0,9};
 int rank13[2] = {2,10};
 int rank14[2] = {8,11};
-int rank15[2] = {9,12};
+int rank15[2] = {6,12};
 
 MPI_Comm comm_world, comm0, comm1, comm2, comm3, comm4, comm5, comm6, comm7, comm8, comm9, comm10, comm11, comm12, comm13, comm14, comm15;
 MPI_Group group_orig, group0, group1, group2, group3, group4, group5, group6, group7, group8, group9, group10, group11, group12, group13, group14, group15;
 
 int world_size, world_rank;
 int worldsizes[4], worldranks[4];
+MPI_Comm comms[4];
+MPI_Request request[4];
+MPI_Status status;
+int TAG = 0;
 
 
 /* Array initialization. */
-#include <unistd.h>
 static
 void init_array(int ni, int nj, int nk, int nl, int nm)
 {
@@ -247,6 +246,13 @@ void kernel_3mm_MPI_Second(){
 
 	}
 
+	void printSizeAndRank(){
+		printf("WORLD RANK/SIZE: %d/%d \n\t NEW WORLD 1 RANK/SIZE: %d/%d \n\t NEW WORLD 2 RANK/SIZE: %d/%d \n\t NEW WORLD 3 RANK/SIZE: %d/%d \n\t NEW WORLD 4 RANK/SIZE: %d/%d \n",
+					world_rank, world_size, worldranks[0], worldsizes[0], worldranks[1], worldsizes[1]
+					, worldranks[2], worldsizes[2], worldranks[3], worldsizes[3]);
+
+	}
+
 	void initWorldsSizeAndRanks(){
 
 		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -265,6 +271,11 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm12, &worldsizes[2]);//left -> processador
 				MPI_Comm_size(comm0, &worldsizes[3]);//right
 
+				comms[0] = comm6;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = comm12;
+				comms[3] = comm0;
+
 				break;
 			case 1:
 				MPI_Comm_rank(comm7, &worldranks[0]);//up
@@ -276,6 +287,11 @@ void kernel_3mm_MPI_Second(){
 				worldsizes[1] = -1;//down
 				MPI_Comm_size(comm0, &worldsizes[2]);//left
 				MPI_Comm_size(comm1, &worldsizes[3]);//right
+
+				comms[0] = comm7;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = comm0;
+				comms[3] = comm1;
 				break;
 			case 2:
 				MPI_Comm_rank(comm8, &worldranks[0]);//up
@@ -287,6 +303,12 @@ void kernel_3mm_MPI_Second(){
 				worldsizes[1] = -1;//down
 				MPI_Comm_size(comm1, &worldsizes[2]);//left
 				MPI_Comm_size(comm13, &worldsizes[3]);//right -> processador
+
+				comms[0] = comm8;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = comm1;
+				comms[3] = comm13;
+
 				break;
 			case 3:
 				MPI_Comm_rank(comm9, &worldranks[0]);//up
@@ -298,6 +320,12 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm6, &worldsizes[1]);//down
 				worldsizes[2] = -1;//left
 				MPI_Comm_size(comm2, &worldsizes[3]);//right
+
+				comms[0] = comm9;
+				comms[1] = comm6;
+				comms[2] = MPI_COMM_NULL;
+				comms[3] = comm2;
+
 				break;
 			case 4:
 				MPI_Comm_rank(comm10, &worldranks[0]);//up
@@ -309,6 +337,12 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm7, &worldsizes[0]);//down
 				MPI_Comm_size(comm2, &worldsizes[2]);//left
 				MPI_Comm_size(comm3, &worldsizes[3]);//right
+
+				comms[0] = comm10;
+				comms[1] = comm7;
+				comms[2] = comm2;
+				comms[3] = comm3;
+
 				break;
 			case 5:
 				MPI_Comm_rank(comm11, &worldranks[0]);//up
@@ -320,6 +354,12 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm8, &worldsizes[1]);//down
 				MPI_Comm_size(comm3, &worldsizes[2]);//left
 				worldsizes[3] = -1;//right
+
+				comms[0] = comm11;
+				comms[1] = comm8;
+				comms[2] = comm3;
+				comms[3] = MPI_COMM_NULL;
+
 				break;
 			case 6:
 				worldranks[0] = -1;//up
@@ -331,6 +371,12 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm9, &worldsizes[1]);//down
 				MPI_Comm_size(comm15, &worldsizes[2]) ;//left
 				MPI_Comm_size(comm4, &worldsizes[3]);//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = comm9;
+				comms[2] = comm15;
+				comms[3] = comm4;
+
 				break;
 			case 7:
 				worldranks[0] = -1;//up
@@ -342,6 +388,12 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm10, &worldsizes[1]);//down
 				MPI_Comm_size(comm4, &worldsizes[2]);//left
 				MPI_Comm_size(comm5, &worldsizes[3]);//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = comm10;
+				comms[2] = comm4;
+				comms[3] = comm5;
+
 				break;
 			case 8:
 				worldranks[0] = -1;//up
@@ -353,6 +405,12 @@ void kernel_3mm_MPI_Second(){
 				MPI_Comm_size(comm11, &worldsizes[1]);//down
 				MPI_Comm_size(comm5, &worldsizes[2]);//left
 				MPI_Comm_size(comm14, &worldsizes[3]);//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = comm11;
+				comms[2] = comm5;
+				comms[3] = comm14;
+
 				break;
 			case 9:
 				worldranks[0] = -1;//up
@@ -364,6 +422,12 @@ void kernel_3mm_MPI_Second(){
 				worldsizes[1] = -1;//down
 				worldsizes[2] = -1;//left
 				MPI_Comm_size(comm12, &worldsizes[3]);//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = MPI_COMM_NULL;
+				comms[3] = comm12;
+
 				break;
 			case 10:
 				worldranks[0] = -1;//up
@@ -375,6 +439,12 @@ void kernel_3mm_MPI_Second(){
 				worldsizes[1] = -1;//down
 				MPI_Comm_size(comm13, &worldsizes[2]);//left
 				worldsizes[3] = -1;//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = comm13;
+				comms[3] = MPI_COMM_NULL;
+
 				break;
 			case 11:
 				worldranks[0] = -1;//up
@@ -386,6 +456,12 @@ void kernel_3mm_MPI_Second(){
 				worldsizes[1] = -1;//down
 				MPI_Comm_size(comm14, &worldsizes[2]);//left
 				worldsizes[3] = -1;//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = comm14;
+				comms[3] = MPI_COMM_NULL;
+
 				break;
 			case 12:
 				worldranks[0] = -1;//up
@@ -397,24 +473,122 @@ void kernel_3mm_MPI_Second(){
 				worldsizes[1] = -1;//down
 				worldsizes[2] = -1;//left
 				MPI_Comm_size(comm15, &worldsizes[3]);//right
+
+				comms[0] = MPI_COMM_NULL;
+				comms[1] = MPI_COMM_NULL;
+				comms[2] = MPI_COMM_NULL;
+				comms[3] = comm15;
+
 				break;
 		}
+		//printSizeAndRank();
 
 	}
 
 
+	int rand_grid(){
+	  int pos;
+	  if(world_rank == 0 || world_rank == 6){
+	    do{
+	      pos = rand() % 4;
+	    }while(comms[pos] == MPI_COMM_NULL || pos == 2);
+	    return pos;
+	  }
+	  else if(world_rank == 2 || world_rank == 8){
+	    do{
+	      pos = rand() % 3;
+	    }while(comms[pos] == MPI_COMM_NULL);
+	    return pos;
+	  }
+	  else{
+	    do{
+	      pos = rand() % 4;
+	    }while(comms[pos] == MPI_COMM_NULL);
+	    return pos;
+	  }
+	}
+
+	void loopdispatcher(int req){
+		for(int i = 0; i < req; i++){
+			//envia o tamanho do n -> send de um inteiro
+			//envia a matriz linha
+			int test = 0;
+			MPI_Send(&test, 1, MPI_INT, 0, TAG, comm12);
+		}
+	}
+
+	void loopprocesser(){
+		int sizeMatrix;
+		if(world_rank == 10 || world_rank == 11){
+			while(1){
+				MPI_Recv(&sizeMatrix, 1, MPI_INT, 0, TAG, comms[2], MPI_STATUS_IGNORE);
+				printf("to processando no world_rank: %d\n", world_rank);
+			}
+		}else{
+			while(1){
+				MPI_Recv(&sizeMatrix, 1, MPI_INT, 0, TAG, comms[3], MPI_STATUS_IGNORE);
+				printf("to processando no world_rank: %d\n", world_rank);
+			}
+		}
+	}
+
+	void loopgrid(){
+		int test[4], flag;
+
+
+		// for(int i = 0; i < 4; i++){
+		// 	if(comms[i] != MPI_COMM_NULL){
+		// 		if(worldranks[i] == 0){
+		// 			MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
+		// 		}else{
+		// 			MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
+		// 		}
+		// 	}
+		// }
+
+		while(1){
+			sleep(0.5);
+			for(int i = 0 ; i < 4; i++){
+				if(comms[i] != MPI_COMM_NULL){
+					if(worldranks[i] == 0){
+						MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
+					}else{
+						MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
+					}
+					MPI_Test(&request[i], &flag, &status);
+					if(flag){
+						printf("Node %d recebeu dado de %d\n", world_rank, i);
+						int pos = i;
+						while(pos == i)
+							pos = rand_grid();
+						printf("Node %d to %d\n", world_rank, pos);
+						if(worldranks[pos] == 0){
+							MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
+						}else{
+							MPI_Send(&test[i], 0, MPI_INT, 1, TAG, comms[pos]);
+						}
+					}
+
+				}
+			}
+		}
+	}
+
 	int main(int argc, char** argv)
 	{
 
-
-	TIME()
-
 	MPI_Init(NULL, NULL);
 
+	createGroupsAndComms();
+	initWorldsSizeAndRanks();
 
-			createGroupsAndComms();
-			initWorldsSizeAndRanks();
-
+	if(world_rank == 9){
+		loopdispatcher(1);
+	}else if(world_rank >= 0 && world_rank <= 8){
+		loopgrid();
+	}else{
+		loopprocesser();
+	}
 
 
 
@@ -511,7 +685,6 @@ void kernel_3mm_MPI_Second(){
 			    // Finalize the MPI environment.
 	MPI_Finalize();
 
-	ENDTIME()
 
 	return 0;
 }
