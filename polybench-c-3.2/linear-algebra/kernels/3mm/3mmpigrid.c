@@ -659,7 +659,7 @@ void kernel_3mm_MPI_Second(){
 	initWorldsSizeAndRanks();
 
 	if(world_rank == 9){
-		loopdispatcher(1);
+		loopdispatcher(10);
 	}else if(world_rank >= 0 && world_rank <= 8){
 		loopgrid();
 	}else{
