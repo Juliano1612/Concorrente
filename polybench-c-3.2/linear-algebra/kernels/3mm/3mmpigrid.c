@@ -487,6 +487,7 @@ void kernel_3mm_MPI_Second(){
 
 
 	int rand_grid(){
+	  srand(time(0));
 	  int pos;
 	  if(world_rank == 0 || world_rank == 6){
 	    do{
@@ -536,52 +537,6 @@ void kernel_3mm_MPI_Second(){
 	void loopgrid(){
 		int test[4], flag, TAG = 0;
 
-		// for(int i = 0; i < 4; i++){
-		// 	if(comms[i] != MPI_COMM_NULL){
-		// 		if(worldranks[i] == 0){
-		// 			MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
-		// 		}else{
-		// 			MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
-		// 		}
-		// 	}
-		// }
-
-		/*while(1){
-
-			// int corner_available = 0;
-			// int corner_val = 0;
-
-			for(int i = 0 ; i < 4; i++){
-				sleep(1);
-				if(comms[i] != MPI_COMM_NULL){
-					//printf("NODE %d worldranks na %d eh %d", world_rank, i, worldranks[i]);
-					if(worldranks[i] == 0){
-						printf("NODE %d worldranks na %d eh 0.... verificando na 1\n", world_rank, i, worldranks[i]);
-						MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
-					}else{
-						printf("NODE %d worldranks na %d eh 1.... verificando na 0\n", world_rank, i, worldranks[i]);
-						MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
-					}
-
-					MPI_Test(&request[i], &flag, &status);
-					if(flag){
-						printf("\tNode %d recebeu dado de %d\n", world_rank, i);
-						int pos = i;
-						while(pos == i)
-							pos = rand_grid();
-							printf("\tNode %d to %d\n", world_rank, pos);
-						if(worldranks[pos] == 0){
-							printf("\tNODE %d worldranks na %d eh 0.... enviando na 1\n", world_rank, i, worldranks[i]);
-							MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
-						}else{
-							printf("\tNODE %d worldranks na %d eh 1.... enviando na 0\n", world_rank, i, worldranks[i]);
-							MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
-						}
-					}
-
-				}
-			}
-		}*/
 
 		int indices[4], num_completed, flagsreqs[4];
 
@@ -621,17 +576,18 @@ void kernel_3mm_MPI_Second(){
 					pos = rand_grid();
 				printf("\tNode %d to %d\n", world_rank, pos);
 				if(worldranks[pos] == 0){
-					MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
+					MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[pos]);
 					//reinicia a flag com o comunicador que acabou de atender
 					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[indices[i]], &request[indices[i]]);
-					MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
+					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
 				}else{
 					MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
 					//reinicia a flag com o comunicador que acabou de atender
 					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 0, TAG, comms[indices[i]], &request[indices[i]]);
-					MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
+					//MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
 				}
 				request[indices[i]] = MPI_REQUEST_NULL;
+				//request[i] = MPI_REQUEST_NULL;
 			
 			}
 		}
