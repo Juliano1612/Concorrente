@@ -557,10 +557,10 @@ void kernel_3mm_MPI_Second(){
 				if(comms[i] != MPI_COMM_NULL){
 					//printf("NODE %d worldranks na %d eh %d", world_rank, i, worldranks[i]);
 					if(worldranks[i] == 0){
-						printf("NODE %d worldranks na %d eh 0.... verificando na 1", world_rank, i, worldranks[i]);
+						printf("NODE %d worldranks na %d eh 0.... verificando na 1\n", world_rank, i, worldranks[i]);
 						MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
 					}else{
-						printf("NODE %d worldranks na %d eh 1.... verificando na 0", world_rank, i, worldranks[i]);
+						printf("NODE %d worldranks na %d eh 1.... verificando na 0\n", world_rank, i, worldranks[i]);
 						MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
 					}
 					MPI_Test(&request[i], &flag, &status);
