@@ -536,7 +536,7 @@ void kernel_3mm_MPI_Second(){
 	void loopgrid(){
 		int test[4], flag, TAG = 0;
 
-
+		printf("WorldRank %d presente!\n", world_rank);
 		// for(int i = 0; i < 4; i++){
 		// 	if(comms[i] != MPI_COMM_NULL){
 		// 		if(worldranks[i] == 0){
