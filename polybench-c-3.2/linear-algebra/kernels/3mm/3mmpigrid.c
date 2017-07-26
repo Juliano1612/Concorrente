@@ -547,7 +547,7 @@ void kernel_3mm_MPI_Second(){
 		// 	}
 		// }
 
-		while(1){
+		/*while(1){
 
 			// int corner_available = 0;
 			// int corner_val = 0;
@@ -563,6 +563,7 @@ void kernel_3mm_MPI_Second(){
 						printf("NODE %d worldranks na %d eh 1.... verificando na 0\n", world_rank, i, worldranks[i]);
 						MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
 					}
+
 					MPI_Test(&request[i], &flag, &status);
 					if(flag){
 						printf("\tNode %d recebeu dado de %d\n", world_rank, i);
@@ -581,7 +582,31 @@ void kernel_3mm_MPI_Second(){
 
 				}
 			}
+		}*/
+
+		int indices[slaves_num], num_completed;
+
+		for(int i = 0; i < 4; i++){
+			request[1] = MPI_REQUEST_NULL;
 		}
+
+		while(1){
+			for(int i = 0; i < 4; i++){
+				if(comms[i] != MPI_COMM_NULL){
+					if(request[i] == MPI_REQUEST_NULL){
+						if(worldranks[i] == 0){
+							MPI_Irecv(&test[i], 1, MPI_INT, 1, MSG_IDLE, comms[i], &request[i]);
+						}else{
+							MPI_Irecv(&test[i], 1, MPI_INT, 0, MSG_IDLE, comms[i], &request[i]);
+						}
+					}
+				}
+			}
+			MPI_Waitsome(4, request, &num_completed, indices, MPI_STATUSES_IGNORE);
+			printf("\tNode %d recebeu dado de %d\n", world_rank, num_completed);
+			//https://stackoverflow.com/questions/22826470/mpi-non-blocking-irecv-didnt-receive-data
+		}
+
 	}
 
 	int main(int argc, char** argv)
