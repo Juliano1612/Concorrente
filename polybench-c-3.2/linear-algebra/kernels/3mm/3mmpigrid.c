@@ -520,22 +520,27 @@ void kernel_3mm_MPI_Second(){
 	}
 
 	void loopprocesser(){
-		int sizeMatrix;
+		int sizeMatrix, flagfree = 1;
 		if(world_rank == 10 || world_rank == 11){
 			while(1){
 				MPI_Recv(&sizeMatrix, 1, MPI_INT, 0, TAG, comms[2], MPI_STATUS_IGNORE);
-				printf("to processando no world_rank: %d\n", world_rank);
+				printf("Processor %d is busy\n", world_rank);
+				//processa
+				MPI_Send(&flagfree, 1, MPI_INT, 0, TAG, comms[2]);
+
 			}
 		}else{
 			while(1){
 				MPI_Recv(&sizeMatrix, 1, MPI_INT, 0, TAG, comms[3], MPI_STATUS_IGNORE);
-				printf("to processando no world_rank: %d\n", world_rank);
+				printf("Processor %d is busy\n", world_rank);
+				//processa
+				MPI_Send(&flagfree, 1, MPI_INT, 0, TAG, comms[3]);
 			}
 		}
 	}
 
 	void loopgrid(){
-		int test[4], flag, TAG = 0;
+		int test[4], TAG = 0, myproc = 1;
 
 
 		int indices[4], num_completed, flagsreqs[4];
@@ -574,42 +579,58 @@ void kernel_3mm_MPI_Second(){
 				int pos = indices[i];
 				if(world_rank == 2 || world_rank == 6 || world_rank == 8){
 					MPI_Request reqProc = MPI_REQUEST_NULL;
-					int flagproc;
+					int flagproc = 0;
 					switch(world_rank){
 						case 2:
 						case 8:
-							MPI_Isend(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[3], &reqProc);
-							MPI_Test(&reqProc, &flagproc, &status);
-							if(!flag){
+							if(indices[i] == 3){//a mensagem veio do processador
+								myproc = 1;
+								flagproc = 1;
+								if(world_rank == 2)
+									printf("Processor 10 is free\n");
+								else
+									printf("Processor 11 is free\n");
+							}
+							if(myproc && !flagproc){//se o processador está disponível
+								MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[3]);
+								myproc = 0;
+								//MPI_Isend(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[3], &reqProc);
+								//MPI_Test(&reqProc, &flagproc, &status);
+							}else if (!flagproc){
 								while(pos == indices[i])
 									pos = rand_grid();
-								printf("\tNode %d to %d\n", world_rank, pos);
+								printf("\tProcessor is busy --- Node %d to %d\n", world_rank, pos);
 								if(worldranks[pos] == 0){
 									MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[pos]);
 								}else{
 									MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
 								}	
-							}else{
-								//envia o resto
-								request[indices[i]] = MPI_REQUEST_NULL;
 							}
+							
+							request[indices[i]] = MPI_REQUEST_NULL;
 							break;
 						case 6:
-							MPI_Isend(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[2], &reqProc);
-							MPI_Test(&reqProc, &flagproc, &status);
-							if(!flag){
+							if(indices[i] == 2){//a mensagem veio do processador
+								myproc = 1;
+								flagproc = 1;
+								printf("Processor 12 is free\n");
+							}else if(myproc && !flagproc){//se o processador está disponível
+								MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[2]);
+								myproc = 0;
+								//MPI_Isend(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[3], &reqProc);
+								//MPI_Test(&reqProc, &flagproc, &status);
+							}else if(!flagproc){
 								while(pos == indices[i])
 									pos = rand_grid();
-								printf("\tNode %d to %d\n", world_rank, pos);
+								printf("\tProcessor is busy --- Node %d to %d\n", world_rank, pos);
 								if(worldranks[pos] == 0){
 									MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[pos]);
 								}else{
 									MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
 								}	
-							}else{
-								//envia o resto
-								request[indices[i]] = MPI_REQUEST_NULL;
 							}
+							
+							request[indices[i]] = MPI_REQUEST_NULL;
 							break;
 					}
 				}else{
