@@ -534,7 +534,7 @@ void kernel_3mm_MPI_Second(){
 	}
 
 	void loopgrid(){
-		int test[4], flag;
+		int test[4], flag, TAG = 0;
 
 
 		// for(int i = 0; i < 4; i++){
@@ -553,11 +553,14 @@ void kernel_3mm_MPI_Second(){
 			// int corner_val = 0;
 
 			for(int i = 0 ; i < 4; i++){
-				sleep(0.25);
+				sleep(1);
 				if(comms[i] != MPI_COMM_NULL){
+					//printf("NODE %d worldranks na %d eh %d", world_rank, i, worldranks[i]);
 					if(worldranks[i] == 0){
+						printf("NODE %d worldranks na %d eh 0.... verificando na 1", world_rank, i, worldranks[i]);
 						MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
 					}else{
+						printf("NODE %d worldranks na %d eh 1.... verificando na 0", world_rank, i, worldranks[i]);
 						MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
 					}
 					MPI_Test(&request[i], &flag, &status);
