@@ -570,7 +570,7 @@ void kernel_3mm_MPI_Second(){
 						if(worldranks[pos] == 0){
 							MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
 						}else{
-							MPI_Send(&test[i], 0, MPI_INT, 1, TAG, comms[pos]);
+							MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
 						}
 					}
 
