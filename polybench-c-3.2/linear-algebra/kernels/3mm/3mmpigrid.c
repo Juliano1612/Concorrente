@@ -565,14 +565,16 @@ void kernel_3mm_MPI_Second(){
 					}
 					MPI_Test(&request[i], &flag, &status);
 					if(flag){
-						printf("Node %d recebeu dado de %d\n", world_rank, i);
+						printf("\tNode %d recebeu dado de %d\n", world_rank, i);
 						int pos = i;
 						while(pos == i)
 							pos = rand_grid();
-							printf("Node %d to %d\n", world_rank, pos);
+							printf("\tNode %d to %d\n", world_rank, pos);
 						if(worldranks[pos] == 0){
+							printf("\tNODE %d worldranks na %d eh 0.... enviando na 1\n", world_rank, i, worldranks[i]);
 							MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
 						}else{
+							printf("\tNODE %d worldranks na %d eh 1.... enviando na 0\n", world_rank, i, worldranks[i]);
 							MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
 						}
 					}
