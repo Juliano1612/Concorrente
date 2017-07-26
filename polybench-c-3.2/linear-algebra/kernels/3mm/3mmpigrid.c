@@ -584,7 +584,7 @@ void kernel_3mm_MPI_Second(){
 			}
 		}*/
 
-		int indices[slaves_num], num_completed;
+		int indices[4], num_completed;
 
 		for(int i = 0; i < 4; i++){
 			request[1] = MPI_REQUEST_NULL;
@@ -595,9 +595,9 @@ void kernel_3mm_MPI_Second(){
 				if(comms[i] != MPI_COMM_NULL){
 					if(request[i] == MPI_REQUEST_NULL){
 						if(worldranks[i] == 0){
-							MPI_Irecv(&test[i], 1, MPI_INT, 1, MSG_IDLE, comms[i], &request[i]);
+							MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
 						}else{
-							MPI_Irecv(&test[i], 1, MPI_INT, 0, MSG_IDLE, comms[i], &request[i]);
+							MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
 						}
 					}
 				}
@@ -607,7 +607,7 @@ void kernel_3mm_MPI_Second(){
 			MPI_Waitsome(4, request, &num_completed, indices, MPI_STATUSES_IGNORE);
 			printf("Node %d teve %d requisicoes completadas\n", world_rank, num_completed);
 			for( int i = 0; i < num_completed; i++){
-				printf("\tNode %d teve a requisicao de %d completada\n", world_rank, request[indices[i]]);
+				printf("\tNode %d teve a requisicao de %d completada\n", world_rank, indices[i]);
 			}
 			//https://stackoverflow.com/questions/22826470/mpi-non-blocking-irecv-didnt-receive-data
 		}
