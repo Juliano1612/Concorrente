@@ -547,8 +547,12 @@ void kernel_3mm_MPI_Second(){
 		// }
 
 		while(1){
-			sleep(0.5);
+
+			// int corner_available = 0;
+			// int corner_val = 0;
+
 			for(int i = 0 ; i < 4; i++){
+				sleep(0.25);
 				if(comms[i] != MPI_COMM_NULL){
 					if(worldranks[i] == 0){
 						MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
@@ -561,7 +565,7 @@ void kernel_3mm_MPI_Second(){
 						int pos = i;
 						while(pos == i)
 							pos = rand_grid();
-						printf("Node %d to %d\n", world_rank, pos);
+							printf("Node %d to %d\n", world_rank, pos);
 						if(worldranks[pos] == 0){
 							MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
 						}else{

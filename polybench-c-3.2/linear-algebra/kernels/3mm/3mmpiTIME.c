@@ -296,6 +296,9 @@ void kernel_3mm_MPI_Second(){
 	      MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	      MPI_Send(&end, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	  	}
+	  	if(world_rank == 0){
+	  		printf("Execucao %d terminada\n", i+1);
+	  	}
 	}
 
 	if(world_rank == 0){
