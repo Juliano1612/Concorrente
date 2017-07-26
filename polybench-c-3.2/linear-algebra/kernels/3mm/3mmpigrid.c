@@ -572,22 +572,19 @@ void kernel_3mm_MPI_Second(){
 			for(int i = 0; i < num_completed; i++){
 				printf("Node %d teve a requisicao de %d completada\n", world_rank, indices[i]);
 				int pos = indices[i];
-				while(pos == indices[i])
-					pos = rand_grid();
-				printf("\tNode %d to %d\n", world_rank, pos);
-				if(worldranks[pos] == 0){
-					MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[pos]);
-					//reinicia a flag com o comunicador que acabou de atender
-					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[indices[i]], &request[indices[i]]);
-					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
+				if(world_rank == 2 || world_rank == 6 || world_rank == 8){
+					printf("O node %d eh um noh de borda", world_rank);
 				}else{
-					MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
-					//reinicia a flag com o comunicador que acabou de atender
-					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 0, TAG, comms[indices[i]], &request[indices[i]]);
-					//MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
+					while(pos == indices[i])
+						pos = rand_grid();
+					printf("\tNode %d to %d\n", world_rank, pos);
+					if(worldranks[pos] == 0){
+						MPI_Send(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[pos]);
+					}else{
+						MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
+					}	
 				}
 				request[indices[i]] = MPI_REQUEST_NULL;
-				//request[i] = MPI_REQUEST_NULL;
 			
 			}
 		}
