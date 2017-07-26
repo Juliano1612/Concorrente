@@ -602,8 +602,13 @@ void kernel_3mm_MPI_Second(){
 					}
 				}
 			}
+			//num_completed possui o numero de requisições completadas
+			//indices possui nas primeiras posições, os indices das requisicoes completadas 
 			MPI_Waitsome(4, request, &num_completed, indices, MPI_STATUSES_IGNORE);
-			printf("\tNode %d recebeu dado de %d\n", world_rank, num_completed);
+			printf("Node %d teve %d requisicoes completadas\n", world_rank, num_completed);
+			for( int i = 0; i < num_completed; i++){
+				printf("\tNode %d teve a requisicao de %d completada\n", world_rank, request[indices[i]]);
+			}
 			//https://stackoverflow.com/questions/22826470/mpi-non-blocking-irecv-didnt-receive-data
 		}
 
