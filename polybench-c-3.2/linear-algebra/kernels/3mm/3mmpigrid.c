@@ -514,6 +514,7 @@ void kernel_3mm_MPI_Second(){
 			//envia a matriz linha
 			int test = 0;
 			MPI_Send(&test, 1, MPI_INT, 0, TAG, comm12);
+			printf("Enviei uma mensagem para 0 --- Mensagem %d\n", i+1);
 		}
 	}
 
