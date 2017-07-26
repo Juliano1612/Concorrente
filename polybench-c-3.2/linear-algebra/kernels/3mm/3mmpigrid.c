@@ -536,7 +536,6 @@ void kernel_3mm_MPI_Second(){
 	void loopgrid(){
 		int test[4], flag, TAG = 0;
 
-		printf("WorldRank %d presente!\n", world_rank);
 		// for(int i = 0; i < 4; i++){
 		// 	if(comms[i] != MPI_COMM_NULL){
 		// 		if(worldranks[i] == 0){
@@ -584,13 +583,14 @@ void kernel_3mm_MPI_Second(){
 			}
 		}*/
 
-		int indices[4], num_completed;
+		int indices[4], num_completed, flagsreqs[4];
 
 		for(int i = 0; i < 4; i++){
-			request[1] = MPI_REQUEST_NULL;
+			request[i] = MPI_REQUEST_NULL;
 		}
 
 		while(1){
+			sleep(1);
 			for(int i = 0; i < 4; i++){
 				if(comms[i] != MPI_COMM_NULL){
 					if(request[i] == MPI_REQUEST_NULL){
@@ -602,14 +602,38 @@ void kernel_3mm_MPI_Second(){
 					}
 				}
 			}
-			//num_completed possui o numero de requisições completadas
-			//indices possui nas primeiras posições, os indices das requisicoes completadas 
-			MPI_Waitsome(4, request, &num_completed, indices, MPI_STATUSES_IGNORE);
-			printf("Node %d teve %d requisicoes completadas\n", world_rank, num_completed);
-			for( int i = 0; i < num_completed; i++){
-				printf("\tNode %d teve a requisicao de %d completada\n", world_rank, indices[i]);
+			num_completed = 0;
+			while(num_completed == 0){
+				for(int i = 0; i < 4; i++){
+					if(comms[i] != MPI_COMM_NULL){
+						MPI_Test(&request[i], &flagsreqs[num_completed], &status);
+						if(flagsreqs[num_completed]){
+							indices[num_completed] = i;
+							num_completed++;
+						}
+					}
+				}
 			}
-			//https://stackoverflow.com/questions/22826470/mpi-non-blocking-irecv-didnt-receive-data
+			for(int i = 0; i < num_completed; i++){
+				printf("Node %d teve a requisicao de %d completada\n", world_rank, indices[i]);
+				int pos = indices[i];
+				while(pos == indices[i])
+					pos = rand_grid();
+				printf("\tNode %d to %d\n", world_rank, pos);
+				if(worldranks[pos] == 0){
+					MPI_Send(&test[i], 1, MPI_INT, 1, TAG, comms[pos]);
+					//reinicia a flag com o comunicador que acabou de atender
+					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[indices[i]], &request[indices[i]]);
+					MPI_Irecv(&test[i], 1, MPI_INT, 1, TAG, comms[i], &request[i]);
+				}else{
+					MPI_Send(&test[i], 1, MPI_INT, 0, TAG, comms[pos]);
+					//reinicia a flag com o comunicador que acabou de atender
+					//MPI_Irecv(&test[indices[i]], 1, MPI_INT, 0, TAG, comms[indices[i]], &request[indices[i]]);
+					MPI_Irecv(&test[i], 1, MPI_INT, 0, TAG, comms[i], &request[i]);
+				}
+				request[indices[i]] = MPI_REQUEST_NULL;
+			
+			}
 		}
 
 	}
