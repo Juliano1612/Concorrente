@@ -10,7 +10,7 @@ $ gcc linear-algebra/kernels/3mm/3mmPapi.c utilities/polybench.c /usr/local/lib/
 
 Para compilar com MPI
 
-$ mpicc linear-algebra/kernels/3mm/3mmpiTime.c utilities/polybench.c -o obj/3mmpiTime -std=gnu99 -Wall -Iutilities -Ilinear-algebra/kernels/3mmpiTime -DSMALL_DATASET -O3 -lm && mpirun -n 2 ./obj/3mmpiTime
+$ mpicc linear-algebra/kernels/3mm/3mmpiTIME.c utilities/polybench.c -o obj/3mmpiTIME -std=gnu99 -Wall -Iutilities -Ilinear-algebra/kernels/3mmpiTIME -DSMALL_DATASET -O3 -lm && mpirun -n 2 ./obj/3mmpiTIME
 
 Para executar diretamente
 

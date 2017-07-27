@@ -25,6 +25,7 @@
 
 int world_size, world_rank;
 double start, end, sumTime = 0, maiorTime  = -INFINITY , menorTime = INFINITY;
+double start1, end1, sumTime1 = 0, maiorTime1  = -INFINITY , menorTime1 = INFINITY;
 
 int id;
 int ni = NI;
@@ -199,7 +200,6 @@ void kernel_3mm_MPI_Second(){
 
 	MPI_Init(NULL, NULL);
 	for(int i = 0; i < 12; i++){
-		start = MPI_Wtime();
 
 		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -237,7 +237,27 @@ void kernel_3mm_MPI_Second(){
 			MPI_Recv(dC+((world_rank*tamParte)*NI), tamParte*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			MPI_Recv(dD, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
+				start = MPI_Wtime();
 				kernel_3mm_MPI_First();
+				end = MPI_Wtime();
+
+		if(world_rank == 0){
+	      double b, e;
+	      for (int i = 1; i < world_size; i++) {
+	        MPI_Recv(&b, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	        MPI_Recv(&e, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	        if(b < start) start = b;
+	        if(e > end) end = e;
+	      }
+		  double auxTime = end-start;
+		  sumTime += auxTime;
+		  if(auxTime < menorTime) menorTime = auxTime;
+		  if(auxTime > maiorTime) maiorTime = auxTime;
+	      //printf("%f\n", auxTime);
+    	}else{
+	      MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	      MPI_Send(&end, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	  	}
 
 
 		if(world_rank == 0){
@@ -263,8 +283,28 @@ void kernel_3mm_MPI_Second(){
 			MPI_Recv(dF, NI*NI, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 		}
-
+			start1 = MPI_Wtime();
 			kernel_3mm_MPI_Second();
+			end1 = MPI_Wtime();
+
+		if(world_rank == 0){
+	      double b, e;
+	      for (int i = 1; i < world_size; i++) {
+	        MPI_Recv(&b, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	        MPI_Recv(&e, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	        if(b < start1) start1 = b;
+	        if(e > end1) end1 = e;
+	      }
+		  double auxTime = end1-start1;
+		  sumTime1 += auxTime;
+		  if(auxTime < menorTime1) menorTime1 = auxTime;
+		  if(auxTime > maiorTime1) maiorTime1 = auxTime;
+	      //printf("%f\n", auxTime);
+    	}else{
+	      MPI_Send(&start1, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	      MPI_Send(&end1, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	  	}
+	  	sumTime += sumTime1;
 
 		if(world_rank == 0){
 
@@ -277,7 +317,6 @@ void kernel_3mm_MPI_Second(){
 			MPI_Send(dG+(world_rank*tamParte*NI), tamParte*NI,MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
 		}
 
-		end = MPI_Wtime();
 
 		if(world_rank == 0){
 	      double b, e;
