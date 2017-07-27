@@ -318,23 +318,23 @@ void kernel_3mm_MPI_Second(){
 		}
 
 
-		if(world_rank == 0){
-	      double b, e;
-	      for (int i = 1; i < world_size; i++) {
-	        MPI_Recv(&b, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	        MPI_Recv(&e, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	        if(b < start) start = b;
-	        if(e > end) end = e;
-	      }
-		  double auxTime = end-start;
-		  sumTime += auxTime;
-		  if(auxTime < menorTime) menorTime = auxTime;
-		  if(auxTime > maiorTime) maiorTime = auxTime;
-	      //printf("%f\n", auxTime);
-    	}else{
-	      MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-	      MPI_Send(&end, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-	  	}
+		// if(world_rank == 0){
+	 //      double b, e;
+	 //      for (int i = 1; i < world_size; i++) {
+	 //        MPI_Recv(&b, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	 //        MPI_Recv(&e, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	 //        if(b < start) start = b;
+	 //        if(e > end) end = e;
+	 //      }
+		//   double auxTime = end-start;
+		//   sumTime += auxTime;
+		//   if(auxTime < menorTime) menorTime = auxTime;
+		//   if(auxTime > maiorTime) maiorTime = auxTime;
+	 //      //printf("%f\n", auxTime);
+  //   	}else{
+	 //      MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	 //      MPI_Send(&end, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	 //  	}
 	  	if(world_rank == 0){
 	  		printf("Execucao %d terminada\n", i+1);
 	  	}
