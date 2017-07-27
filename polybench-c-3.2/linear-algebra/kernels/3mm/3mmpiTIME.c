@@ -304,7 +304,7 @@ void kernel_3mm_MPI_Second(){
 	      MPI_Send(&start1, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	      MPI_Send(&end1, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	  	}
-	  	sumTime += sumTime1;
+	  	//sumTime += sumTime1;
 
 		if(world_rank == 0){
 
@@ -342,6 +342,8 @@ void kernel_3mm_MPI_Second(){
 
 	if(world_rank == 0){
 		sumTime = sumTime - menorTime - maiorTime;
+		sumTime1 = sumTime1 - menorTime1 - maiorTime1;
+		sumTime += sumTime1;
 		printf("MEDIA %d computadores %f\n", world_size, sumTime/10);
 	}
 

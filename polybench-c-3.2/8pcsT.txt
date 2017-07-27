@@ -10,4 +10,4 @@ Execucao 9 terminada
 Execucao 10 terminada
 Execucao 11 terminada
 Execucao 12 terminada
-MEDIA 8 computadores 353.759595
+MEDIA 8 computadores 296.167721
