@@ -813,7 +813,7 @@ void loopgrid(){
 	initWorldsSizeAndRanks();
 
 	if(world_rank == 9){
-		loopdispatcher(10);
+		loopdispatcher(atoi(argv[1]));
 	}else if(world_rank >= 0 && world_rank <= 8){
 		loopgrid();
 	}else{
