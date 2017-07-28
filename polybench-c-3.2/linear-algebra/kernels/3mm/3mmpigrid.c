@@ -1,28 +1,29 @@
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
+//#include <string.h>
 #include <math.h>
 #include <mpi.h>
 #include <time.h>
 #include <unistd.h>
-#include <polybench.h>
 #include "3mm.h"
 
-int id;
-int ni = NI;
-int nj = NJ;
-int nk = NK;
-int nl = NL;
-int nm = NM;
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+#define KRST  "\x1b[0m"
 
-int tamParte = NI;
+#define CURRTIME() time ( &rawtime ); timeinfo = localtime ( &rawtime );
+
+int id;
 
 double *dTrans;
 double *dE;
-double *dA;
-double *dB;
 double *dF;
-double *dC;
-double *dD;
 double *dG;
 
 //vetores com os ranks que criarão comunicadores
@@ -55,114 +56,50 @@ MPI_Request request[4];
 MPI_Status status;
 int TAG = 0;
 
+time_t rawtime;
+struct tm * timeinfo;
 
-static void init_array(int ni, int nj, int nk, int nl, int nm){
-	int i, j;
 
-	dA = (double *) malloc (sizeof(double) * NI*NI);
-	dB = (double *) malloc (sizeof(double) * NI*NI);
-	dC = (double *) malloc (sizeof(double) * NI*NI);
-	dD = (double *) malloc (sizeof(double) * NI*NI);
-	dE = (double *) malloc (sizeof(double) * NI*NI);
-	dF = (double *) malloc (sizeof(double) * NI*NI);
-	dG = (double *) malloc (sizeof(double) * NI*NI);
-
-	for(i = 0; i < ni; i++){
-		for(j = 0; j < ni; j++){
-			//A[i][j] = ((DATA_TYPE) i*j) / ni;
-			dA[(i*ni)+j] = ((DATA_TYPE) i*j) / ni;
-
-			//B[i][j] = ((DATA_TYPE) i*(j+1)) / nj;
-			dB[(i*ni)+j] = ((DATA_TYPE) i*(j+1)) / nj;
-
-			//C[i][j] = ((DATA_TYPE) i*(j+3)) / nl;
-			dC[(i*ni)+j] = ((DATA_TYPE) i*(j+3)) / nl;
-
-			//D[i][j] = ((DATA_TYPE) i*(j+2)) / nk;
-			dD[(i*ni)+j] = ((DATA_TYPE) i*(j+2)) / nk;
-
-			//E[i][j] = ((DATA_TYPE) 0);
-			dE[(i*ni)+j] = ((DATA_TYPE) 0);
-
-			//F[i][j] = ((DATA_TYPE) 0);
-			dF[(i*ni)+j] = ((DATA_TYPE) 0);
-
-			//G[i][j] = ((DATA_TYPE) 0);
-			dG[(i*ni)+j] = ((DATA_TYPE) 0);
-		}
-	}
+struct tm* getTimeLog(){
+	time ( &rawtime );
+	timeinfo = localtime ( &rawtime );
+	return timeinfo;
 }
+
 
 void initMatrixTrans(double tamMatrix){
-		for(int i = 0; i < tamMatrix; i++){
-			for(int j = 0; j < tamMatrix; j++){
-				dTrans[(int)((i*tamMatrix)+j+(tamMatrix*0)+4)] = (double) (i*j) / tamMatrix;//Matriz A
-				dTrans[(int)((i*tamMatrix)+j+(tamMatrix*1)+4)] = (double) (i*(j+1)) / tamMatrix;//Matriz B
-				dTrans[(int)((i*tamMatrix)+j+(tamMatrix*2)+4)] = (double) (i*(j+3)) / tamMatrix;//Matriz C
-				dTrans[(int)((i*tamMatrix)+j+(tamMatrix*3)+4)] = (double) (i*(j+2)) / tamMatrix;//Matriz D
-			}
-		}
-	}
-
-
-static void printMatrixLine(double* m){
-	int tamLinha  = 0;
-	int contaLinha = 0;
-	//printf("\nWR%d Linha[%d]", world_rank, contaLinha);
-	for(int i = 0; i < NI*NI; i++){
-		if(tamLinha == NI){
-			contaLinha++;
-			tamLinha = 0;
-			//printf("\nWR%d Linha[%d] %.2f", world_rank, contaLinha, m[i]);
-			printf("\n%.2f", m[i]);
-
-		}else{
-			printf(" %f", m[i]);
-		}
-		tamLinha++;
-
-	}
-	printf("\n");
-}
-
-
-static void kernel_3mm_MPI_Second(){
-	int begin = world_rank * tamParte;
-	int end = begin+tamParte;
-	int i, j, k;
-	for (i = begin; i < end; i++){
-		for (j = 0; j < _PB_NL; j++){
-			dG[(i*NI)+j] = 0;
-			for (k = 0; k < _PB_NJ; ++k){
-				dG[(i*NI)+j] += dE[(i*NI)+k] * dF[(k*NI)+j];
-			}
+	int desloc = (int) tamMatrix*tamMatrix;
+	for(int i = 0; i  < tamMatrix; i++){
+		for(int j = 0; j < tamMatrix; j++){
+			dTrans[(int)((i*tamMatrix)+j+(desloc*0)+4)] = (double) (i*j) / tamMatrix;//Matriz A
+			dTrans[(int)((i*tamMatrix)+j+(desloc*1)+4)] = (double) (i*(j+1)) / tamMatrix;//Matriz B
+			dTrans[(int)((i*tamMatrix)+j+(desloc*2)+4)] = (double) (i*(j+3)) / tamMatrix;//Matriz C
+			dTrans[(int)((i*tamMatrix)+j+(desloc*3)+4)] = (double) (i*(j+2)) / tamMatrix;//Matriz D
 		}
 	}
 }
 
 
-static void kernel_3mm_MPI_First(){
+// static void printMatrixLine(double* m){
+// 	int tamLinha  = 0;
+// 	int contaLinha = 0;
+// 	//printf("\nWR%d Linha[%d]", world_rank, contaLinha);
+// 	for(int i = 0; i < NI*NI; i++){
+// 		if(tamLinha == NI){
+// 			contaLinha++;
+// 			tamLinha = 0;
+// 			//printf("\nWR%d Linha[%d] %.2f", world_rank, contaLinha, m[i]);
+// 			printf("\n%.2f", m[i]);
+//
+// 		}else{
+// 			printf(" %f", m[i]);
+// 		}
+// 		tamLinha++;
+//
+// 	}
+// 	printf("\n");
+// }
 
-	int begin = world_rank * tamParte;
-	int end = begin+tamParte;
-	int i, j, k;
-	for (i = begin; i < end; i++){
-		for (j = 0; j < NI; j++){
-			dE[(i*NI)+j] = 0;
-			for (k = 0; k < NI; ++k){
-				dE[(i*NI)+j] += dA[(i*NI)+k] * dB[(k*NI)+j];
-			}
-		}
-	}
-	for (i = begin; i < end; i++){
-		for (j = 0; j < NI; j++){
-			dF[(i*NI)+j] = 0;
-			for (k = 0; k < NI; ++k){
-				dF[(i*NI)+j] += dC[(i*NI)+k] * dD[(k*NI)+j];
-			}
-		}
-	}
-}
 
 
 void createGroupsAndComms(){
@@ -208,12 +145,12 @@ void createGroupsAndComms(){
 
 }
 
-void printSizeAndRank(){
-	printf("WORLD RANK/SIZE: %d/%d \n\t NEW WORLD 1 RANK/SIZE: %d/%d \n\t NEW WORLD 2 RANK/SIZE: %d/%d \n\t NEW WORLD 3 RANK/SIZE: %d/%d \n\t NEW WORLD 4 RANK/SIZE: %d/%d \n",
-				world_rank, world_size, worldranks[0], worldsizes[0], worldranks[1], worldsizes[1]
-				, worldranks[2], worldsizes[2], worldranks[3], worldsizes[3]);
-
-}
+// void printSizeAndRank(){
+// 	printf("WORLD RANK/SIZE: %d/%d \n\t NEW WORLD 1 RANK/SIZE: %d/%d \n\t NEW WORLD 2 RANK/SIZE: %d/%d \n\t NEW WORLD 3 RANK/SIZE: %d/%d \n\t NEW WORLD 4 RANK/SIZE: %d/%d \n",
+// 				world_rank, world_size, worldranks[0], worldsizes[0], worldranks[1], worldsizes[1]
+// 				, worldranks[2], worldsizes[2], worldranks[3], worldsizes[3]);
+//
+// }
 
 void initWorldsSizeAndRanks(){
 
@@ -447,6 +384,42 @@ void initWorldsSizeAndRanks(){
 
 }
 
+void kernel_3mm_MPI_Grid(){
+
+	int size = (int) dTrans[2];
+
+	int desloc = size*size;
+	for (int i = 0; i < size; i++){
+		for (int j = 0; j < size; j++){
+			dE[(i*size)+j] = 0;
+			for (int k = 0; k < size; ++k){
+				dE[(i*size)+j] += dTrans[(i*size)+k+4] * dTrans[desloc+(k*size)+j+4];
+			}
+		}
+	}
+	for (int i = 0; i < size; i++){
+		for (int j = 0; j < size; j++){
+			dF[(i*size)+j] = 0;
+			for (int k = 0; k < size; ++k){
+				dF[(i*size)+j] += dTrans[(2*desloc)+(i*size)+k+4] * dTrans[(3*desloc)+(k*size)+j+4];
+			}
+		}
+	}
+	for (int i = 0; i < size; i++){
+		for (int j = 0; j < size; j++){
+			dG[(i*size)+j] = 0;
+			for (int k = 0; k < size; ++k){
+				dG[(i*size)+j] += dE[(i*size)+k] * dF[(k*size)+j];
+			}
+		}
+	}
+	for(int i = 0; i < size; i++){
+		for(int j = 0; j < size; j++){
+			dTrans[(i*size)+j+4] = dG[(i*size)+j];
+		}
+	}
+}
+
 
 int rand_grid(){
   srand(time(0));
@@ -474,60 +447,178 @@ int rand_grid(){
 void loopdispatcher(int req){
 	srand(time(0));
 	double potencia;
+	MPI_Request reqsdispatcher[req];
 	for(int i = 0; i < req; i++){
 		potencia = (rand() % 7)+1;
+		//potencia = 7;
 		potencia = pow(2,potencia);
 		initMatrixTrans(potencia);
 		dTrans[0] = 0.0;//enviando
 		dTrans[1] = i+1;//numRequisicao
 		dTrans[2] = potencia;//size
-		printf("Sending request %d...Size of matrix %d\n", i+1, (int) potencia);
-		MPI_Send(dTrans, 65539, MPI_DOUBLE, 0, TAG, comm12);
-		MPI_Recv(dTrans, 65539, MPI_DOUBLE, 0, TAG, comm12, MPI_STATUS_IGNORE);
-		printf("Execucao Terminada\n");
-		dTrans[0] = 2.0;
-		MPI_Send(dTrans, 65539, MPI_DOUBLE, 0, TAG, comm12);
-		printf("Dispacher finalizado\n");
+		sleep(2);
+		CURRTIME()
+		printf("[%d:%d:%02d] %sENVIANDO REQUISICAO %d ... MATRIZES DE TAMANHO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KYEL , i+1, potencia, KRST);
+		MPI_Send(dTrans, 65540, MPI_DOUBLE, 0, TAG, comm12);
+		MPI_Irecv(dTrans, 65540, MPI_DOUBLE, 0, TAG, comm12, &reqsdispatcher[i]);
 	}
+	int contareq = 0, flagdisp;
+	while(contareq < req){
+		contareq = 0;
+		for(int i = 0; i < req; i++){
+			MPI_Test(&reqsdispatcher[i], &flagdisp, MPI_STATUS_IGNORE);
+			if(flagdisp)
+				contareq++;
+		}
+	}
+	dTrans[0] = 2.0;
+	MPI_Send(dTrans, 65540, MPI_DOUBLE, 0, TAG, comm12);
+	CURRTIME()
+	printf("%s[%d:%d:%02d] %sREQUISITOR FINALIZADO%s\n", KRED,timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KYEL, KRST);
 }
 
 void loopprocesser(){
-	int sizeMatrix, flagfree = 1;
+
+	dE = (double *) malloc (sizeof(double) * 128*128);
+	dF = (double *) malloc (sizeof(double) * 128*128);
+	dG = (double *) malloc (sizeof(double) * 128*128);
+
 	if(world_rank == 10 || world_rank == 11){
 		while(1){
-			MPI_Recv(dTrans, 65539, MPI_DOUBLE, 0, TAG, comms[2], MPI_STATUS_IGNORE);
+			MPI_Recv(dTrans, 65540, MPI_DOUBLE, 0, TAG, comms[2], MPI_STATUS_IGNORE);
 			if(dTrans[0] == 0.0){
-				printf("Processor %d is busy\n", world_rank);
-				//processa
-				sleep(1);
+				CURRTIME()
+				printf("[%d:%d:%02d] %sPROCESSADOR %d INICIANDO PROCESSAMENTO DE REQUISICAO %d --- MATRIZES DE TAMANHO %.0f%s\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, world_rank,(int) dTrans[1], dTrans[2],KRST);
+				kernel_3mm_MPI_Grid();
 				dTrans[0] = 1.0;
-				//printf("Processor %d is free\n", world_rank);
-				MPI_Send(dTrans, 65539, MPI_DOUBLE, 0, TAG, comms[2]);
+				MPI_Send(dTrans, 65540, MPI_DOUBLE, 0, TAG, comms[2]);
 			}else{
-				printf("Processador %d recebeu mensagem de morte... Processador finalizado\n", world_rank);
+				CURRTIME()
+				printf("%s[%d:%d:%02d] %sPROCESSADOR %d RECEBEU MENSAGEM DE FINALIZACAO... PROCESSADOR FINALIZADO%s\n",KRED, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, world_rank, KRST);
 				break;
 			}
 		}
 	}else{
 		while(1){
-			MPI_Recv(dTrans, 65539, MPI_DOUBLE, 0, TAG, comms[3], MPI_STATUS_IGNORE);
+			MPI_Recv(dTrans, 65540, MPI_DOUBLE, 0, TAG, comms[3], MPI_STATUS_IGNORE);
 			if(dTrans[0] == 0.0){
-				printf("Processor %d is busy\n", world_rank);
-				//processa
-				sleep(1);
-				dTrans[0] = 1;
-				//printf("Processor %d is free\n", world_rank);
-				MPI_Send(dTrans, 65539, MPI_DOUBLE, 0, TAG, comms[3]);
+				CURRTIME()
+				printf("[%d:%d:%02d] %sPROCESSADOR %d INICIANDO PROCESSAMENTO DE REQUISICAO %d --- MATRIZES DE TAMANHO %.0f%s\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, world_rank,(int) dTrans[1], dTrans[2], KRST);
+				kernel_3mm_MPI_Grid();
+				dTrans[0] = 1.0;
+				MPI_Send(dTrans, 65540, MPI_DOUBLE, 0, TAG, comms[3]);
 			}else{
-				printf("Processador %d recebeu mensagem de morte... Processador finalizado\n", world_rank);
+				CURRTIME()
+				printf("%s[%d:%d:%02d] %sPROCESSADOR %d RECEBEU MENSAGEM DE FINALIZACAO... PROCESSADOR FINALIZADO%s\n", KRED, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, world_rank, KRST);
 				break;
 			}
 		}
 	}
 }
 
+void mensagemEnvio(int lado){
+	CURRTIME()
+	switch (lado) {
+		case 0:
+			printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank+3, KRST);
+			break;
+		case 1:
+			printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank-3, KRST);
+			break;
+		case 2:
+			switch (world_rank) {
+				case 0:
+					printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 9, KRST);
+					break;
+				case 6:
+					printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 12, KRST);
+					break;
+				default:
+					printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank-1, KRST);
+			}
+			break;
+		case 3:
+			switch (world_rank) {
+				case 2:
+					printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 10, KRST);
+					break;
+				case 8:
+					printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 11, KRST);
+					break;
+				default:
+					printf("[%d:%d:%02d]%s N0 %d ENVIANDO PARA NO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank+1, KRST);
+			}
+
+	}
+}
+
+void mensagemRecebimento(int lado, double req){
+	CURRTIME()
+	switch (lado) {
+		case 0:
+			printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank+3, req, KRST);
+			break;
+		case 1:
+			printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank-3, req, KRST);
+			break;
+		case 2:
+			switch (world_rank) {
+				case 0:
+					printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 9, req, KRST);
+					break;
+				case 6:
+					printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 12, req, KRST);
+					break;
+				default:
+					printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank-1, req, KRST);
+			}
+			break;
+		case 3:
+			switch (world_rank) {
+				case 2:
+					printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 10, req, KRST);
+					break;
+				case 8:
+					printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 11, req, KRST);
+					break;
+				default:
+					printf("[%d:%d:%02d] %sN0 %d RECEBEU DE NO %d A REQUISICAO %.0f%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, world_rank+1, req, KRST);
+			}
+
+	}
+}
+
+void mensagemEnvioProcessar(){
+	CURRTIME()
+	switch (world_rank) {
+		case 2:
+			printf("[%d:%d:%02d] %sNO %d ENVIANDO PARA PROCESSADOR %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 10, KRST);
+			break;
+		case 6:
+			printf("[%d:%d:%02d] %sNO %d ENVIANDO PARA PROCESSADOR %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 12, KRST);
+			break;
+		case 8:
+			printf("[%d:%d:%02d] %sNO %d ENVIANDO PARA PROCESSADOR %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, 11, KRST);
+	}
+}
+
+void mensagemProcessadorOcupado(int lado){
+	CURRTIME()
+	switch (world_rank) {
+		case 2:
+			printf("[%d:%d:%02d] %sPROCESSADOR %d OCUPADO%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, 10, KRST);
+			break;
+		case 6:
+			printf("[%d:%d:%02d] %sPROCESSADOR %d OCUPADO%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, 12, KRST);
+			break;
+		case 8:
+			printf("[%d:%d:%02d] %sPROCESSADOR %d OCUPADO%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, 11, KRST);
+	}
+	mensagemEnvio(lado);
+}
+
 void loopgrid(){
-	double test[4][65539];
+	double test[4][65540];
 	int TAG = 0, myproc = 1;
 
 	int indices[4], num_completed, flagsreqs[4];
@@ -542,9 +633,9 @@ void loopgrid(){
 			if(comms[i] != MPI_COMM_NULL){
 				if(request[i] == MPI_REQUEST_NULL){
 					if(worldranks[i] == 0){
-						MPI_Irecv(&test[i], 65539, MPI_DOUBLE, 1, TAG, comms[i], &request[i]);
+						MPI_Irecv(&test[i], 65540, MPI_DOUBLE, 1, TAG, comms[i], &request[i]);
 					}else{
-						MPI_Irecv(&test[i], 65539, MPI_DOUBLE, 0, TAG, comms[i], &request[i]);
+						MPI_Irecv(&test[i], 65540, MPI_DOUBLE, 0, TAG, comms[i], &request[i]);
 					}
 				}
 			}
@@ -563,10 +654,10 @@ void loopgrid(){
 		}
 		for(int i = 0; i < num_completed; i++){
 			double flagCaminho = test[indices[i]][0];
-			printf("Node %d recebeu de node %d ----- Requisicao %.0f ---- %.0f\n", world_rank, indices[i], test[indices[i]][1], flagCaminho);
 			int pos = indices[i];
 			if(flagCaminho == 0.0){
-				printf("\n\t\tNode %d esta enviando para processar\n", world_rank);
+				mensagemRecebimento(indices[i], test[indices[i]][1]);
+				mensagemEnvioProcessar();
 				if(world_rank == 2 || world_rank == 6 || world_rank == 8){
 					//MPI_Request reqProc = MPI_REQUEST_NULL;
 					int flagproc = 0;
@@ -576,24 +667,23 @@ void loopgrid(){
 							if(indices[i] == 3){//a mensagem veio do processador
 								myproc = 1;
 								flagproc = 1;
+								CURRTIME()
 								if(world_rank == 2)
-									printf("Processor 10 is free\n");
+									printf("[%d:%d:%02d] %sPROCESSADOR 10 COMPLETOU A REQUISICAO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, (int) test[indices[i]][1], KRST);
 								else
-									printf("Processor 11 is free\n");
+									printf("[%d:%d:%02d] %sPROCESSADOR 11 COMPLETOU A REQUISICAO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, (int) test[indices[i]][1], KRST);
 							}
 							if(myproc && !flagproc){//se o processador está disponível
-								MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[3]);
+								MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[3]);
 								myproc = 0;
-								//MPI_Isend(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[3], &reqProc);
-								//MPI_Test(&reqProc, &flagproc, &status);
 							}else if (!flagproc){
 								while(pos == indices[i])
 									pos = rand_grid();
-								printf("\tProcessor is busy --- Node %d to %d\n", world_rank, pos);
+								mensagemProcessadorOcupado(pos);
 								if(worldranks[pos] == 0){
-									MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[pos]);
+									MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[pos]);
 								}else{
-									MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[pos]);
+									MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[pos]);
 								}
 							}
 							request[indices[i]] = MPI_REQUEST_NULL;
@@ -602,20 +692,19 @@ void loopgrid(){
 							if(indices[i] == 2){//a mensagem veio do processador
 								myproc = 1;
 								flagproc = 1;
-								printf("Processor 12 is free\n");
+								CURRTIME()
+								printf("[%d:%d:%02d] %sPROCESSADOR 12 COMPLETOU A REQUISICAO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN,  (int) test[indices[i]][1], KRST);
 							}else if(myproc && !flagproc){//se o processador está disponível
-								MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[2]);
+								MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[2]);
 								myproc = 0;
-								//MPI_Isend(&test[indices[i]], 1, MPI_INT, 1, TAG, comms[3], &reqProc);
-								//MPI_Test(&reqProc, &flagproc, &status);
 							}else if(!flagproc){
 								while(pos == indices[i])
 									pos = rand_grid();
-								printf("\tProcessor is busy --- Node %d to %d\n", world_rank, pos);
+								mensagemProcessadorOcupado(pos);
 								if(worldranks[pos] == 0){
-									MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[pos]);
+									MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[pos]);
 								}else{
-									MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[pos]);
+									MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[pos]);
 								}
 							}
 							request[indices[i]] = MPI_REQUEST_NULL;
@@ -624,86 +713,91 @@ void loopgrid(){
 				}else{
 					while(pos == indices[i])
 						pos = rand_grid();
-					printf("\tNode %d to %d\n", world_rank, pos);
+					mensagemEnvio(pos);
 					if(worldranks[pos] == 0){
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[pos]);
+						MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[pos]);
 					}else{
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[pos]);
+						MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[pos]);
 					}
 				}
 			request[indices[i]] = MPI_REQUEST_NULL;
 		}else if(flagCaminho == 1.0){//mensagem está voltando
-				printf("\n\t\tNode %d esta retornando a resposta\n", world_rank);
-				if(world_rank == 2 || world_rank == 6 || world_rank == 8){
-					int flagproc = 0;
-					switch(world_rank){
-						case 2:
-						case 8:
-							if(indices[i] == 3){//a mensagem veio do processador
-								myproc = 1;
-								flagproc = 1;
-								if(world_rank == 2)
-									printf("Processor 10 is free\n");
-								else
-									printf("Processor 11 is free\n");
-							}
-							if(world_rank == 2){
-								printf("\tNode %d to %d\n", world_rank, 2);
-								MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[2]);
-							}else{
-								printf("\tNode %d to %d\n", world_rank, 1);
-								MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[1]);
-							}
-							request[indices[i]] = MPI_REQUEST_NULL;
-							break;
-						case 6:
-							if(indices[i] == 2){//a mensagem veio do processador
-								myproc = 1;
-								flagproc = 1;
-								printf("Processor 12 is free\n");
-							}
-							printf("\tNode %d to %d\n", world_rank, 1);
-							MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[1]);
-							request[indices[i]] = MPI_REQUEST_NULL;
-							break;
-					}
-				}else if(world_rank == 0 || world_rank == 1){
-					printf("\tNode %d to %d\n", world_rank, 2);
-					if(world_rank == 0){
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[2]);
-					}else{
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[2]);
-					}
-				}else{
-					printf("\tNode %d to %d\n", world_rank, 1);
-					MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 0, TAG, comms[1]);
-				}
-			}else{
-				printf("Node %d recebeu mensagem de morte....Repassando para vizinhos\n", world_rank);
-				switch (world_rank) {
-					case 0:
-					case 1:
+			CURRTIME()
+			printf("[%d:%d:%02d] %sNO %d RETORNANDO A RESPOSTA DE %.0f PARA O REQUISITOR%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KWHT, world_rank, test[indices[i]][1], KRST);
+			if(world_rank == 2 || world_rank == 6 || world_rank == 8){
+				int flagproc = 0;
+				switch(world_rank){
 					case 2:
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[0]);
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[3]);
-						break;
-					case 3:
-					case 4:
-					case 5:
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[0]);
+					case 8:
+						if(indices[i] == 3){//a mensagem veio do processador
+							myproc = 1;
+							flagproc = 1;
+							CURRTIME()
+							if(world_rank == 2)
+								printf("[%d:%d:%02d] %sPROCESSADOR 10 COMPLETOU A REQUISICAO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, (int) test[indices[i]][1], KRST);
+							else
+								printf("[%d:%d:%02d] %sPROCESSADOR 11 COMPLETOU A REQUISICAO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, (int) test[indices[i]][1], KRST);
+						}
+						if(world_rank == 2){
+							mensagemEnvio(2);
+							MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[2]);
+						}else{
+							mensagemEnvio(1);
+							MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[1]);
+						}
+						request[indices[i]] = MPI_REQUEST_NULL;
 						break;
 					case 6:
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[2]);
-						break;
-					case 8:
-						MPI_Send(&test[indices[i]], 65539, MPI_DOUBLE, 1, TAG, comms[3]);
+						if(indices[i] == 2){//a mensagem veio do processador
+							myproc = 1;
+							flagproc = 1;
+							CURRTIME()
+							printf("[%d:%d:%02d] %sPROCESSADOR 12 COMPLETOU A REQUISICAO %d%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KCYN, (int) test[indices[i]][1], KRST);
+						}
+						mensagemEnvio(1);
+						MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[1]);
+						request[indices[i]] = MPI_REQUEST_NULL;
 						break;
 				}
-				printf("Node %d finalizado\n", world_rank);
-
-				return;
+			}else if(world_rank == 0 || world_rank == 1){
+				mensagemEnvio(2);
+				if(world_rank == 0){
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[2]);
+				}else{
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[2]);
+				}
+			}else{
+				mensagemEnvio(1);
+				MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 0, TAG, comms[1]);
 			}
-			request[indices[i]] = MPI_REQUEST_NULL;
+		}else{
+			CURRTIME()
+			printf("[%d:%d:%02d] %sNO %d RECEBEU MENSAGEM DE FINALIZACAO... REPASSANDO PARA VIZINHOS%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, KRST);
+			switch (world_rank) {
+				case 0:
+				case 1:
+				case 2:
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[0]);
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[3]);
+					break;
+				case 3:
+				case 4:
+				case 5:
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[0]);
+					break;
+				case 6:
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[2]);
+					break;
+				case 8:
+					MPI_Send(&test[indices[i]], 65540, MPI_DOUBLE, 1, TAG, comms[3]);
+					break;
+			}
+			CURRTIME()
+			printf("%s[%d:%d:%02d] %sNO %d FINALIZADO%s\n",KRED, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KGRN, world_rank, KRST);
+
+			return;
+		}
+		request[indices[i]] = MPI_REQUEST_NULL;
 		}
 	}
 
@@ -713,21 +807,26 @@ void loopgrid(){
 	{
 
 	MPI_Init(NULL, NULL);
-	dTrans = (double *) malloc (sizeof(double) * 65539);
+	dTrans = (double *) malloc (sizeof(double) * (128*128*4+4));
 
 	createGroupsAndComms();
 	initWorldsSizeAndRanks();
 
 	if(world_rank == 9){
-		loopdispatcher(1);
+		loopdispatcher(10);
 	}else if(world_rank >= 0 && world_rank <= 8){
 		loopgrid();
 	}else{
 		loopprocesser();
+		free(dE);
+		free(dF);
+		free(dG);
 	}
-
+	free(dTrans);
 	MPI_Finalize();
-
-
+	if(world_rank == 0){
+		CURRTIME()
+		printf("[%d:%d:%02d] %sExecucao concluida%s\n",timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, KMAG, KRST);
+	}
 	return 0;
 }
